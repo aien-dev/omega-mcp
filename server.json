@@ -1,0 +1,16 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.aien-dev/omega-mcp",
+  "description": "Compile and run Omega (.om) programs in a sandbox, and look up Omega errors and keywords.",
+  "repository": { "url": "https://github.com/aien-dev/omega-mcp", "source": "github" },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/aien-dev/omega-mcp/releases/download/v0.1.0/omega-mcp-linux-arm64.mcpb",
+      "version": "0.1.0",
+      "fileSha256": "84ef9498e20bf216d58f97b3f47073e1d849fa040049e0b70f9efe4e5734e3d1",
+      "transport": { "type": "stdio" }
+    }
+  ]
+}

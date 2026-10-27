@@ -76,3 +76,5 @@ about other kernels or about a sandbox configuration other than the one in `src/
 - `DEPENDENCIES.md`: every host tool in the build, runtime and verification paths
 
 License: Apache-2.0 (see `LICENSE` and `NOTICE`).
+
+<!-- mcp-name: io.github.aien-dev/omega-mcp -->
