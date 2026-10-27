@@ -1,0 +1,394 @@
+note omega-mcp: byte helpers, the server log, packed argument lists and paths.
+
+note u2d: decimal digits of v into d, most significant first; returns the digit count
+fn u2d v ulong d edit uchar 20 to ulong
+t = new uchar 20 0
+k = ulong 0
+x = v
+while gt x 9 bound 20
+put t k uchar add 48 rem x 10
+x = div x 10
+k = add k 1
+end
+put t k uchar add 48 x
+k = add k 1
+for i ulong k
+put d i get t sub sub k 1 i
+end
+ret k
+end
+
+note ---- server log: one line per event on stderr ----
+fn lg_b c uchar to void
+n = get gv glbl
+if lt n 1022
+put lb n c
+put gv glbl add n 1
+end
+end
+
+fn lg_t t view uchar * to void
+for i ulong len t
+lg_b get t i
+end
+end
+
+fn lg_n v ulong to void
+d = new uchar 20 0
+k = u2d v d
+for i ulong k
+lg_b get d i
+end
+end
+
+note lg_raw: up to 160 raw bytes of a request token (log only)
+fn lg_raw src view uchar * off ulong n ulong to void
+m = n
+if gt m 160
+m = 160
+end
+for i ulong m
+c = get src add off i
+if or lt c 32 eq c 127
+c = 63
+end
+lg_b c
+end
+end
+
+fn lg_end to void
+lg_b 10
+w = write 2 lb 0 get gv glbl
+put gv glbl 0
+end
+
+note lg_cb: captured bytes cb[off..off+n) into the log line, control bytes as '?'
+fn lg_cb off ulong n ulong to void
+for i ulong n
+c = get cb add off i
+if or lt c 32 eq c 127
+c = 63
+end
+lg_b c
+end
+end
+
+fn lg_line t view uchar * to void
+lg_t t
+lg_end
+end
+
+note ---- packed argument list in pk ----
+fn pk_reset to void
+put pk 0 0
+put pk 1 0
+put gv gpkn 0
+put gv gpkl 2
+put gv gpkov 0
+end
+
+fn pk_beg to void
+l = get gv gpkl
+put gv gpkr l
+if le add l 2 4096
+put gv gpkl add l 2
+ret
+end
+put gv gpkov 1
+end
+
+fn pk_b c uchar to void
+l = get gv gpkl
+if lt l 4096
+put pk l c
+put gv gpkl add l 1
+ret
+end
+put gv gpkov 1
+end
+
+fn pk_end to void
+if ne get gv gpkov 0
+ret
+end
+r = get gv gpkr
+n = sub sub get gv gpkl r 2
+put pk r uchar and n 255
+put pk add r 1 uchar shr n 8
+c = add get gv gpkn 1
+put gv gpkn c
+put pk 0 uchar and c 255
+put pk 1 uchar shr c 8
+if gt c 64
+put gv gpkov 1
+end
+end
+
+fn pk_t t view uchar * to void
+for i ulong len t
+pk_b get t i
+end
+end
+
+fn pk_n v ulong to void
+d = new uchar 20 0
+k = u2d v d
+for i ulong k
+pk_b get d i
+end
+end
+
+fn pk_arg t view uchar * to void
+pk_beg
+pk_t t
+pk_end
+end
+
+fn pk_sx to void
+for i ulong get gv gsxl
+pk_b get sx i
+end
+end
+
+fn pk_omc to void
+for i ulong get gv gomcl
+pk_b get omcp i
+end
+end
+
+fn pk_tdir to void
+for i ulong get gv gtdl
+pk_b get tdir i
+end
+end
+
+note ---- paths in pa ----
+note pa_t: tdir + "/" + t; returns the length
+fn pa_t t view uchar * to ulong
+n = get gv gtdl
+for i ulong n
+put pa i get tdir i
+end
+put pa n 47
+n = add n 1
+for i ulong len t
+put pa add n i get t i
+end
+ret add n len t
+end
+
+note pa_d: datp + t; returns the length
+fn pa_d t view uchar * to ulong
+n = get gv gdatl
+for i ulong n
+put pa i get datp i
+end
+for i ulong len t
+put pa add n i get t i
+end
+ret add n len t
+end
+
+note pa_add: append t at pa[n..); returns the new length (callers keep it under 4096)
+fn pa_add n ulong t view uchar * to ulong
+for i ulong len t
+put pa add n i get t i
+end
+ret add n len t
+end
+
+note ---- files in the temporary directory ----
+fn tnew t view uchar * mode int to long
+n = pa_t t
+ret fopen pa 0 n ofnew mode
+end
+
+fn trd t view uchar * to long
+n = pa_t t
+ret fopen pa 0 n ofrd 0
+end
+
+fn tdel t view uchar * to void
+n = pa_t t
+r = unlink pa 0 n
+end
+
+note wfull: write all of a[0..n) to fd; false on any failure
+fn wfull fd int a view uchar * n ulong to bool
+o = ulong 0
+while lt o n bound 999999
+r = write fd a o sub n o
+if eq r -4
+continue
+end
+if le r 0
+ret false
+end
+o = add o ulong r
+end
+ret true
+end
+
+note le32: little-endian u32 at fds[o..o+4)
+fn fds32 o ulong to ulong
+v = ulong 0
+for i ulong 4
+v = or v shl ulong get fds add o i mul i 8
+end
+ret v
+end
+
+fn sb32 o ulong to ulong
+v = ulong 0
+for i ulong 4
+v = or v shl ulong get sbuf add o i mul i 8
+end
+ret v
+end
+
+fn wst32 to ulong
+v = ulong 0
+for i ulong 4
+v = or v shl ulong get wst i mul i 8
+end
+ret v
+end
+
+note capfd: size of the regular file fd; its first min(size, lim) bytes go to cb[off..), count to gv slot
+fn capfd fd int off ulong lim ulong slot ulong to ulong
+put gv slot 0
+sz = fseek fd 0 2
+if lt sz 0
+ret 0
+end
+z = fseek fd 0 0
+want = ulong sz
+if gt want lim
+want = lim
+end
+got = ulong 0
+while lt got want bound 999999
+r = read fd cb add off got sub want got
+if le r 0
+break
+end
+got = add got ulong r
+end
+put gv slot got
+ret ulong sz
+end
+
+note capname: capture tdir/t into cb[off..off+lim), count to slot, total returned
+fn capname t view uchar * off ulong lim ulong slot ulong to ulong
+put gv slot 0
+f = trd t
+if lt f 0
+ret 0
+end
+fd = int f
+n = capfd fd off lim slot
+c = fclose fd
+ret n
+end
+
+note ---- UTF-8 sanitizing string writer over cb ----
+note u8ok: length of the well-formed UTF-8 sequence at cb[i] (ending before e), 0 when ill-formed
+fn u8ok i ulong e ulong to ulong
+c = get cb i
+if lt c 128
+ret 1
+end
+n = ulong 0
+lo = uchar 128
+hi = uchar 191
+if and ge c 194 le c 223
+n = 2
+end
+if eq c 224
+n = 3
+lo = 160
+end
+if or and ge c 225 le c 236 and ge c 238 le c 239
+n = 3
+end
+if eq c 237
+n = 3
+hi = 159
+end
+if eq c 240
+n = 4
+lo = 144
+end
+if and ge c 241 le c 243
+n = 4
+end
+if eq c 244
+n = 4
+hi = 143
+end
+if eq n 0
+ret 0
+end
+if gt add i n e
+ret 0
+end
+c1 = get cb add i 1
+if or lt c1 lo gt c1 hi
+ret 0
+end
+for k ulong sub n 2
+c2 = get cb add add i 2 k
+if or lt c2 128 gt c2 191
+ret 0
+end
+end
+ret n
+end
+
+text ktrunc "\n[omega-mcp: output truncated: showing the first "
+text ktrunc2 " of "
+text ktrunc3 " bytes]"
+
+fn ws_t ob edit uchar * t view uchar * to void
+for i ulong len t
+js_wsb ob get t i
+end
+end
+
+fn ws_n ob edit uchar * v ulong to void
+d = new uchar 20 0
+k = u2d v d
+for i ulong k
+js_wsb ob get d i
+end
+end
+
+note w_cb: cb[off..off+n) as one JSON string; ill-formed UTF-8 becomes U+FFFD; when tot > n a
+note truncation marker is appended
+fn w_cb ob edit uchar * off ulong n ulong tot ulong to void
+js_wsbeg ob
+i = off
+e = add off n
+while lt i e bound 999999
+k = u8ok i e
+if eq k 0
+js_wsb ob 239
+js_wsb ob 191
+js_wsb ob 189
+i = add i 1
+continue
+end
+for j ulong k
+js_wsb ob get cb add i j
+end
+i = add i k
+end
+if gt tot n
+ws_t ob ktrunc
+ws_n ob n
+ws_t ob ktrunc2
+ws_n ob tot
+ws_t ob ktrunc3
+end
+js_wsend ob
+end

@@ -1,0 +1,624 @@
+note omega-mcp: JSON-RPC 2.0 over newline-delimited stdio (MCP stdio transport). One request per
+note line; a line without an id is a notification and gets no reply. Arrays live in fn main's frame:
+note ib (input bytes), tape (request tokens), ob (reply writer), ds/dt (reference data and its tokens).
+
+const jrparse long -32700
+const jrinv long -32600
+const jrmeth long -32601
+const jrpar long -32602
+const jrint long -32603
+
+text kjv "2.0"
+text m_init "initialize"
+text m_ping "ping"
+text m_list "tools/list"
+text m_call "tools/call"
+text k_jrpc "jsonrpc"
+text k_id "id"
+text k_method "method"
+text k_params "params"
+text k_result "result"
+text k_error "error"
+text k_code "code"
+text k_msg "message"
+text k_pv "protocolVersion"
+text k_caps "capabilities"
+text k_tools "tools"
+text k_lc "listChanged"
+text k_si "serverInfo"
+text k_name "name"
+text k_ver "version"
+text k_instr "instructions"
+text k_args "arguments"
+text k_cont "content"
+text k_type "type"
+text k_text "text"
+text k_sc "structuredContent"
+text k_iserr "isError"
+text v_pv1 "2025-06-18"
+text v_pv2 "2025-03-26"
+text v_pv3 "2024-11-05"
+text v_instr "Compile and run Omega (.om) programs with the pinned seeded compiler omc (omega-mv e5b32567, omc sha256 2c82480596bbdc50cda9626866209ef662d5834f278f839ff4ce0250c495029f). Tools: compile, run (each call gets a fresh sandbox: no network, no host files, cleared environment, cpu/memory/file-size/process limits and a wall clock), explain_error (compiler error 1..30, an `omc: line N: error K` line, or a trap exit 101..114) and lookup (every keyword of the compiler's keyword table, with citations into omega-mv@e5b32567)."
+text e_parse "Parse error: the line is not one RFC 8259 JSON value"
+text e_long "Parse error: the line is longer than 983040 bytes"
+text e_batch "Invalid Request: batch arrays are not supported"
+text e_notobj "Invalid Request: the request must be a JSON object"
+text e_jv "Invalid Request: jsonrpc must be the string \"2.0\""
+text e_idt "Invalid Request: id must be a string or an integer"
+text e_mt "Invalid Request: method must be a string"
+text e_meth "Method not found"
+text e_pobj "Invalid params: params must be an object"
+text e_pvs "Invalid params: protocolVersion must be a string"
+text e_tname "Invalid params: params.name must be a string"
+text e_targ "Invalid params: params.arguments must be an object"
+text e_tunk "Invalid params: unknown tool; tools/list names compile, run, explain_error and lookup"
+text e_int "Internal error: the reply could not be encoded"
+text l_ready "omega-mcp: ready; isolation bwrap+prlimit; compiler "
+text l_noiso "omega-mcp: WARNING: --test-only-no-isolation is set; programs run on the host without sandbox, limits or environment clearing. Test use only; never use this flag with an agent."
+text l_req "req "
+text l_note "notification "
+text l_id " id="
+text l_out " -> "
+text l_tool " tool="
+text l_eof "omega-mcp: end of input; exiting"
+text l_boot "omega-mcp: start-up failed with code "
+text l_data "omega-mcp: data/reference.json is missing or invalid"
+text f_ref "reference.json"
+text o_ok "ok"
+text o_err "error "
+text o_tooler "tool error"
+text o_silent "no reply"
+
+note ---- small writer helpers (ob is the reply writer) ----
+fn wt ob edit uchar * t view uchar * to void
+js_wsbuf ob t 0 len t
+end
+
+fn wkt ob edit uchar * k view uchar * t view uchar * to void
+wt ob k
+wt ob t
+end
+
+fn wku ob edit uchar * k view uchar * v ulong to void
+wt ob k
+js_wulong ob v
+end
+
+fn wkb ob edit uchar * k view uchar * v bool to void
+wt ob k
+js_wbool ob v
+end
+
+note ---- member lookup ----
+note rmem: value token of member key in request object t (jsnone when absent or t is not an object)
+fn rmem src view uchar 1572864 tape view uint 65536 t ulong key view uchar * to ulong
+if ne js_type tape t jsobj
+ret jsnone
+end
+k = js_first tape t
+while ne k jsnone bound 999999
+if js_streq src js_off tape k key
+ret add k 1
+end
+k = js_mnext tape k
+end
+ret jsnone
+end
+
+note dmem: the same over the reference data
+fn dmem ds view uchar 393216 dt view uint 98304 t ulong key view uchar * to ulong
+if ne js_type dt t jsobj
+ret jsnone
+end
+k = js_first dt t
+while ne k jsnone bound 999999
+if js_streq ds js_off dt k key
+ret add k 1
+end
+k = js_mnext dt k
+end
+ret jsnone
+end
+
+note dcopy: copy the data value starting at token t into the writer
+fn dcopy ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 t ulong to void
+e = js_last dt t
+for i ulong add sub e t 1
+u = add t i
+js_wtok ob ds js_type dt u js_off dt u
+end
+end
+
+note rcopy: copy the request value starting at token t into the writer
+fn rcopy ob edit uchar 787472 src view uchar 1572864 tape view uint 65536 t ulong to void
+e = js_last tape t
+for i ulong add sub e t 1
+u = add t i
+js_wtok ob src js_type tape u js_off tape u
+end
+end
+
+note ---- replies ----
+note rbeg: {"jsonrpc":"2.0","id":<id or null>,
+fn rbeg ob edit uchar 787472 src view uchar 1572864 tape view uint 65536 to void
+z = js_winit ob
+js_wobj ob
+wkt ob k_jrpc kjv
+wt ob k_id
+t = get gv gidt
+if eq t jsnone
+js_wnull ob
+end
+if ne t jsnone
+js_wtok ob src js_type tape t js_off tape t
+end
+end
+
+text knl "\n"
+text kinter "{\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32603,\"message\":\"Internal error: the reply could not be encoded\"}}\n"
+
+note rsend: close the reply object and write it as one line to stdout
+fn rsend ob edit uchar 787472 to void
+js_wobje ob
+n = js_wdone ob
+if lt n 0
+lg_t e_int
+lg_b 32
+lg_n ulong neg n
+lg_end
+ok = wfull 1 kinter len kinter
+ret
+end
+ok = wfull 1 part ob 1040 ulong n ulong n
+ok = wfull 1 knl 1
+end
+
+fn rerr ob edit uchar 787472 src view uchar 1572864 tape view uint 65536 code long msg view uchar * to void
+rbeg ob src tape
+wt ob k_error
+js_wobj ob
+wt ob k_code
+js_wlong ob code
+wkt ob k_msg msg
+js_wobje ob
+rsend ob
+lg_t o_err
+lg_n ulong neg code
+end
+
+note ---- request line ----
+note idok: id must be a string or an integer number (MCP forbids null)
+fn idok tape view uint 65536 src view uchar 1572864 t ulong to bool
+y = js_type tape t
+if eq y jsstr
+ret true
+end
+if eq y jsnum
+ret ne js_ilex src js_off tape t 0
+end
+ret false
+end
+
+fn lgid src view uchar 1572864 tape view uint 65536 to void
+t = get gv gidt
+if ne t jsnone
+lg_t l_id
+lg_raw src js_off tape t js_span tape t
+end
+end
+
+fn lgmeth src view uchar 1572864 tape view uint 65536 m ulong to void
+if eq js_type tape m jsstr
+lg_raw src add js_off tape m 1 sub js_span tape m 2
+end
+end
+
+note handle: one request line ib[0..n)
+fn handle ib view uchar 1572864 tape edit uint 65536 ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 n ulong to void
+put gv gidt jsnone
+lg_t l_req
+r = js_parse ib tape n
+if lt r 0
+rerr ob ib tape jrparse e_parse
+lg_end
+ret
+end
+if ne envelope ib tape ob 0
+lg_end
+ret
+end
+m = rmem ib tape 0 k_method
+lgmeth ib tape m
+lgid ib tape
+if eq get gv gidt jsnone
+lg_b 32
+lg_t o_silent
+lg_end
+ret
+end
+dispatch ib tape ob ds dt m
+lg_end
+end
+
+note envelope: checks jsonrpc, id and method; replies -32600 itself and returns 1 on a refusal
+fn envelope ib view uchar 1572864 tape view uint 65536 ob edit uchar 787472 to ulong
+y = js_type tape 0
+if eq y jsarr
+rerr ob ib tape jrinv e_batch
+ret 1
+end
+if ne y jsobj
+rerr ob ib tape jrinv e_notobj
+ret 1
+end
+i = rmem ib tape 0 k_id
+if ne i jsnone
+if not idok tape ib i
+rerr ob ib tape jrinv e_idt
+ret 1
+end
+put gv gidt i
+end
+v = rmem ib tape 0 k_jrpc
+ok = false
+if ne v jsnone
+if eq js_type tape v jsstr
+ok = js_streq ib js_off tape v kjv
+end
+end
+if not ok
+rerr ob ib tape jrinv e_jv
+ret 1
+end
+m = rmem ib tape 0 k_method
+if or eq m jsnone ne js_type tape m jsstr
+rerr ob ib tape jrinv e_mt
+ret 1
+end
+ret 0
+end
+
+fn ismeth ib view uchar 1572864 tape view uint 65536 m ulong t view uchar * to bool
+ret js_streq ib js_off tape m t
+end
+
+fn dispatch ib view uchar 1572864 tape view uint 65536 ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 m ulong to void
+p = rmem ib tape 0 k_params
+put gv gpar p
+if ne p jsnone
+if ne js_type tape p jsobj
+rerr ob ib tape jrpar e_pobj
+ret
+end
+end
+if ismeth ib tape m m_init
+doinit ib tape ob
+ret
+end
+if ismeth ib tape m m_ping
+rbeg ob ib tape
+wt ob k_result
+js_wobj ob
+js_wobje ob
+rsend ob
+lg_t l_out
+lg_t o_ok
+ret
+end
+if ismeth ib tape m m_list
+rbeg ob ib tape
+wt ob k_result
+js_wobj ob
+wt ob k_tools
+dcopy ob ds dt dmem ds dt 0 k_tools
+js_wobje ob
+rsend ob
+lg_t l_out
+lg_t o_ok
+ret
+end
+if ismeth ib tape m m_call
+docall ib tape ob ds dt
+ret
+end
+rerr ob ib tape jrmeth e_meth
+end
+
+note pvpick: 1..3 when the requested protocol version is supported, else 1 (the newest)
+fn pvpick ib view uchar 1572864 tape view uint 65536 v ulong to ulong
+o = js_off tape v
+if js_streq ib o v_pv2
+ret 2
+end
+if js_streq ib o v_pv3
+ret 3
+end
+ret 1
+end
+
+fn doinit ib view uchar 1572864 tape view uint 65536 ob edit uchar 787472 to void
+p = get gv gpar
+v = rmem ib tape p k_pv
+pv = ulong 1
+if ne v jsnone
+if ne js_type tape v jsstr
+rerr ob ib tape jrpar e_pvs
+ret
+end
+pv = pvpick ib tape v
+end
+rbeg ob ib tape
+wt ob k_result
+js_wobj ob
+wt ob k_pv
+if eq pv 1
+wt ob v_pv1
+end
+if eq pv 2
+wt ob v_pv2
+end
+if eq pv 3
+wt ob v_pv3
+end
+wt ob k_caps
+js_wobj ob
+wt ob k_tools
+js_wobj ob
+wkb ob k_lc false
+js_wobje ob
+js_wobje ob
+wt ob k_si
+js_wobj ob
+wkt ob k_name kname
+wkt ob k_ver kver
+js_wobje ob
+wkt ob k_instr v_instr
+js_wobje ob
+rsend ob
+lg_t l_out
+lg_t o_ok
+end
+
+note ---- tools/call ----
+text t_comp "compile"
+text t_run "run"
+text t_expl "explain_error"
+text t_lookup "lookup"
+
+fn docall ib view uchar 1572864 tape view uint 65536 ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 to void
+p = get gv gpar
+nm = rmem ib tape p k_name
+if or eq nm jsnone ne js_type tape nm jsstr
+rerr ob ib tape jrpar e_tname
+ret
+end
+a = rmem ib tape p k_args
+if ne a jsnone
+if ne js_type tape a jsobj
+rerr ob ib tape jrpar e_targ
+ret
+end
+end
+put gv garg a
+o = js_off tape nm
+w = ulong 0
+if js_streq ib o t_comp
+w = 1
+end
+if js_streq ib o t_run
+w = 2
+end
+if js_streq ib o t_expl
+w = 3
+end
+if js_streq ib o t_lookup
+w = 4
+end
+if eq w 0
+rerr ob ib tape jrpar e_tunk
+ret
+end
+put gv gtool w
+lg_t l_tool
+lg_raw ib add o 1 sub js_span tape nm 2
+e = argcheck ib tape ob w
+if ne e 0
+argerr ob ib tape e
+ret
+end
+prep ib tape ob ds dt
+reply ib tape ob ds dt
+end
+
+note reply: result {"structuredContent": R, "content": [{"type":"text","text": R as text}], "isError": b}
+fn reply ib view uchar 1572864 tape view uint 65536 ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 to void
+rbeg ob ib tape
+wt ob k_result
+js_wobj ob
+wt ob k_sc
+s = js_wlen ob
+build ib tape ob ds dt
+e = js_wlen ob
+wt ob k_cont
+js_warr ob
+js_wobj ob
+wkt ob k_type k_text
+wt ob k_text
+js_wsbeg ob
+for i ulong sub e s
+js_wsb ob get ob add add 1040 s i
+end
+js_wsend ob
+js_wobje ob
+js_warre ob
+wkb ob k_iserr ne get gv gisok 1
+js_wobje ob
+rsend ob
+lg_t l_out
+if eq get gv gisok 1
+lg_t o_ok
+end
+if ne get gv gisok 1
+lg_t o_tooler
+end
+end
+
+note ---- start-up and the read loop ----
+fn loadref ds edit uchar 393216 dt edit uint 98304 to bool
+n = pa_d f_ref
+f = fopen pa 0 n ofrd 0
+if lt f 0
+ret false
+end
+fd = int f
+got = ulong 0
+while lt got 393216 bound 999999
+r = read fd ds got sub 393216 got
+if le r 0
+break
+end
+got = add got ulong r
+end
+c = fclose fd
+if ge got 393216
+ret false
+end
+z = js_init dt 393216 64
+if lt z 0
+ret false
+end
+p = js_parse ds dt got
+if lt p 0
+ret false
+end
+ret eq js_type dt 0 jsobj
+end
+
+note lineat: index of the first newline in ib[from..n), or n
+fn lineat ib view uchar 1572864 from ulong n ulong to ulong
+for i ulong sub n from
+if eq get ib add from i 10
+ret add from i
+end
+end
+ret n
+end
+
+note step: one request line or one read; false at end of input
+fn step ib edit uchar 1572864 tape edit uint 65536 ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 to bool
+n = get gv gran
+p = lineat ib get gv gsin n
+if lt p n
+oneline ib tape ob ds dt p
+shiftin ib add p 1
+ret true
+end
+put gv gsin n
+if gt n maxline
+put gv geof 1
+put gv gran 0
+put gv gsin 0
+n = 0
+end
+r = read 0 ib n sub 1572864 n
+if eq r -4
+ret true
+end
+if le r 0
+if or gt n 0 ne get gv geof 0
+oneline ib tape ob ds dt n
+end
+ret false
+end
+put gv gran add n ulong r
+ret true
+end
+
+note shiftin: drop ib[0..k) and move the rest to the front
+fn shiftin ib edit uchar 1572864 k ulong to void
+n = get gv gran
+for i ulong sub n k
+put ib i get ib add k i
+end
+put gv gran sub n k
+put gv gsin 0
+end
+
+note isblank: ib[0..q) holds only spaces, tabs and carriage returns
+fn isblank ib view uchar 1572864 q ulong to bool
+for i ulong q
+c = get ib i
+if not or or eq c 32 eq c 9 eq c 13
+ret false
+end
+end
+ret true
+end
+
+note oneline: ib[0..p) is a line (geof marks the tail of an overlong line, answered -32700)
+fn oneline ib view uchar 1572864 tape edit uint 65536 ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 p ulong to void
+if ne get gv geof 0
+put gv geof 0
+put gv gidt jsnone
+lg_t l_req
+rerr ob ib tape jrparse e_long
+lg_end
+ret
+end
+q = p
+if gt q 0
+if eq get ib sub q 1 13
+q = sub q 1
+end
+end
+if isblank ib q
+ret
+end
+handle ib tape ob ds dt q
+end
+
+fn main to int
+ib = new uchar 1572864 0
+tape = new uint 65536 0
+ob = new uchar 787472 0
+ds = new uchar 393216 0
+dt = new uint 98304 0
+a = argcnt
+if ge a 3
+if argeq 1 a_reap
+ret reapmain
+end
+end
+b = boot
+if ne b 0
+lg_t l_boot
+lg_n ulong b
+lg_end
+ret b
+end
+if not loadref ds dt
+lg_line l_data
+ret 4
+end
+z = js_init tape maxline 64
+if ne get gv gnoiso 0
+lg_line l_noiso
+end
+if eq get gv gnoiso 0
+lg_t l_ready
+lg_t kpin
+lg_end
+end
+put gv gran 0
+put gv gsin 0
+put gv geof 0
+for o ulong 999999
+for i ulong 999999
+if not step ib tape ob ds dt
+lg_line l_eof
+ret 0
+end
+end
+end
+ret 0
+end

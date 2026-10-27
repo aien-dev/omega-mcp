@@ -1,0 +1,607 @@
+note omega-mcp: per-call temporary directory, the sandboxed spawn and the in-sandbox reaper.
+note
+note One compile or run:
+note  1. the parent opens the stage's stdin/stdout/stderr files in the 0700 temp dir and three close-on-exec
+note     pipes (status, block, info), then forks child A;
+note  2. A moves them to fds 0..5 and execs /usr/bin/bwrap (no shell, empty environment) with every namespace
+note     unshared, a cleared environment, a read-only root holding only this executable (/r) and the program
+note     (/p), a 16 MiB tmpfs /w, and --block-fd 4 / --info-fd 5;
+note  3. the parent reads the sandbox pid 1 from the info fd, runs /usr/bin/prlimit --pid on it (cpu, as,
+note     fsize, nproc, nofile, core) and only then writes the byte that lets bwrap continue;
+note  4. inside, /r reap /p forks, the child execs /p with fds >= 3 closed, and the reaper writes the raw
+note     wait status to fd 3 (the status pipe) as 'X' + 4 bytes ('E' + errno when exec failed);
+note  5. the parent polls the status pipe and waitpid(WNOHANG) against a monons deadline and kills bwrap
+note     with SIGKILL when the wall clock runs out (--die-with-parent tears the namespaces down).
+
+text kbwrap "/usr/bin/bwrap"
+text kprlim "/usr/bin/prlimit"
+text kenv "/usr/bin/env"
+text a_ua "--unshare-all"
+text a_uu "--unshare-user"
+text a_du "--disable-userns"
+text a_dwp "--die-with-parent"
+text a_ns "--new-session"
+text a_ce "--clearenv"
+text a_bf "--block-fd"
+text a_if "--info-fd"
+text a_rob "--ro-bind"
+text a_size "--size"
+text a_tmpfs "--tmpfs"
+text a_chdir "--chdir"
+text a_rro "--remount-ro"
+text a_4 "4"
+text a_5 "5"
+text a_r "/r"
+text a_p "/p"
+text a_w "/w"
+text a_root "/"
+text a_16m "16777216"
+text a_reap "reap"
+text a_pid "--pid"
+text a_cpu "--cpu="
+text a_as "--as="
+text a_fsz "--fsize="
+text a_npr "--nproc="
+text a_nof "--nofile=64"
+text a_core "--core=0"
+text f_src "src"
+text f_bin "bin"
+text f_in "in"
+text f_out "out"
+text f_err "err"
+text f_cerr "cerr"
+text f_plog "plog"
+text kcpid "child-pid"
+
+note ---- temporary directory ----
+fn mktemp to bool
+for a ulong 8
+r = random rnd 0 8 0
+if ne r 8
+continue
+end
+n = len ktmp
+for i ulong n
+put tdir i get ktmp i
+end
+for i ulong 8
+c = get rnd i
+put tdir add n mul i 2 get khex ulong shr c 4
+put tdir add add n mul i 2 1 get khex ulong and c 15
+end
+put gv gtdl add n 16
+m = makedir tdir 0 add n 16 448
+if eq m 0
+ret true
+end
+end
+put gv gtdl 0
+ret false
+end
+
+note rmtemp: remove the fixed files, then the directory; false when the directory stays behind
+fn rmtemp to bool
+if eq get gv gtdl 0
+ret true
+end
+tdel f_src
+tdel f_bin
+tdel f_in
+tdel f_out
+tdel f_err
+tdel f_cerr
+tdel f_plog
+r = rmdir tdir 0 get gv gtdl
+put gv gtdl 0
+ret eq r 0
+end
+
+note ---- descriptors ----
+fn pipe2 rs ulong ws ulong to bool
+r = pipefds fds 0 8 524288
+if ne r 0
+ret false
+end
+put gv rs fds32 0
+put gv ws fds32 4
+ret true
+end
+
+fn cl slot ulong to void
+v = get gv slot
+if lt v 1024
+c = fclose int v
+end
+put gv slot 9999
+end
+
+fn clall to void
+cl gfin
+cl gfout
+cl gferr
+cl gsr
+cl gsw
+cl gbr
+cl gbw
+cl gir
+cl giw
+cl gplog
+end
+
+note setfd: store a nonnegative open result in a slot; false otherwise
+fn setfd slot ulong r long to bool
+if lt r 0
+put gv slot 9999
+ret false
+end
+put gv slot ulong r
+ret true
+end
+
+note ---- argument lists ----
+fn pk_bwrap md ulong to void
+pk_reset
+pk_arg kbwrap
+pk_arg a_ua
+pk_arg a_uu
+pk_arg a_du
+pk_arg a_dwp
+pk_arg a_ns
+pk_arg a_ce
+pk_arg a_bf
+pk_arg a_4
+pk_arg a_if
+pk_arg a_5
+pk_arg a_rob
+pk_beg
+pk_sx
+pk_end
+pk_arg a_r
+pk_arg a_rob
+pk_beg
+if eq md 0
+pk_omc
+end
+if ne md 0
+pk_tdir
+pk_b 47
+pk_t f_bin
+end
+pk_end
+pk_arg a_p
+pk_arg a_size
+pk_arg a_16m
+pk_arg a_tmpfs
+pk_arg a_w
+pk_arg a_chdir
+pk_arg a_w
+pk_arg a_rro
+pk_arg a_root
+pk_arg a_r
+pk_arg a_reap
+pk_arg a_p
+end
+
+note pk_noiso: the isolation-off control (--test-only-no-isolation). The program runs directly on the
+note host through /usr/bin/env with every server environment entry, in the temp dir, with no limits.
+fn pk_noiso md ulong to void
+pk_reset
+pk_arg kenv
+nenv = ulong envcnt
+b = new uchar 1024 0
+for i ulong nenv
+r = envread i b 0 1024
+if lt r 0
+continue
+end
+if gt add add get gv gpkl ulong r 600 4096
+continue
+end
+pk_beg
+for j ulong ulong r
+pk_b get b j
+end
+pk_end
+end
+pk_beg
+if eq md 0
+pk_omc
+end
+if ne md 0
+pk_tdir
+pk_b 47
+pk_t f_bin
+end
+pk_end
+end
+
+fn pk_lim pre view uchar * a ulong b ulong to void
+pk_beg
+pk_t pre
+pk_n a
+if ne b 0
+pk_b 58
+pk_n b
+end
+pk_end
+end
+
+fn pk_prlimit md ulong pid ulong to void
+pk_reset
+pk_arg kprlim
+pk_arg a_pid
+pk_beg
+pk_n pid
+pk_end
+if eq md 0
+pk_lim a_cpu cmpcpu add cmpcpu 1
+pk_lim a_as cmpas 0
+pk_lim a_fsz cmpfsz 0
+pk_lim a_npr cmpnpr cmpnpr
+end
+if ne md 0
+pk_lim a_cpu runcpu add runcpu 1
+pk_lim a_as runas 0
+pk_lim a_fsz runfsz 0
+pk_lim a_npr runnpr runnpr
+end
+pk_arg a_nof
+pk_arg a_core
+end
+
+note ---- child side ----
+fn fdof slot ulong to int
+ret int get gv slot
+end
+
+fn childgo to void
+z = dupfd fdof gfin 100 524288
+z = dupfd fdof gfout 101 524288
+z = dupfd fdof gferr 102 524288
+z = dupfd fdof gsw 103 524288
+z = dupfd fdof gbr 104 524288
+z = dupfd fdof giw 105 524288
+z = dupfd 100 0 0
+z = dupfd 101 1 0
+z = dupfd 102 2 0
+z = dupfd 103 3 0
+z = dupfd 104 4 0
+z = dupfd 105 5 0
+if ne get gv gnoiso 0
+c = chdir tdir 0 get gv gtdl
+end
+r = execprog pk 0 get gv gpkl
+exit 127
+end
+
+note ---- parent side ----
+note waitkid: reap pid within ms milliseconds (SIGKILL after that); returns the raw status or 65535
+fn waitkid pid long ms ulong to ulong
+dl = add monons mul long ms 1000000
+k = false
+for i ulong 999999
+r = waitpid int pid wst 0 4 1
+if eq r pid
+ret wst32
+end
+if and lt r 0 ne r -4
+ret 65535
+end
+if and not k gt monons dl
+z = killpid int pid 9
+k = true
+end
+z = sleepns long 1000000
+end
+ret 65535
+end
+
+note readinfo: the child-pid bwrap reports on the info pipe within 5 s; 0 when it never comes
+fn readinfo to ulong
+dl = add monons 5000000000
+n = ulong 0
+fd = fdof gir
+for i ulong 999999
+if ge n 1000
+break
+end
+rem0 = sub dl monons
+if le rem0 0
+break
+end
+w = waitio fd 1 rem0
+if le w 0
+break
+end
+r = read fd inf n sub 1000 n
+if le r 0
+break
+end
+n = add n ulong r
+if eq get inf sub n 1 125
+break
+end
+end
+ret infopid n
+end
+
+fn infat s ulong to bool
+for j ulong len kcpid
+if ne get inf add s j get kcpid j
+ret false
+end
+end
+ret true
+end
+
+note infnum: the first run of decimal digits in inf[s..n)
+fn infnum s ulong n ulong to ulong
+v = ulong 0
+dig = false
+for p ulong sub n s
+c = get inf add s p
+if and ge c 48 le c 57
+v = add mul v 10 ulong sub c 48
+dig = true
+continue
+end
+if dig
+break
+end
+end
+ret v
+end
+
+fn infopid n ulong to ulong
+k = len kcpid
+if lt n k
+ret 0
+end
+for s ulong add sub n k 1
+if infat s
+ret infnum add s k n
+end
+end
+ret 0
+end
+
+note limits: run prlimit --pid on the sandbox pid 1; true when prlimit exited 0
+fn limits md ulong cpid ulong to bool
+pk_prlimit md cpid
+if ne get gv gpkov 0
+ret false
+end
+tdel f_plog
+f = tnew f_plog 384
+if not setfd gplog f
+ret false
+end
+pid = fork
+if eq pid 0
+z = dupfd fdof gplog 0 0
+z = dupfd fdof gplog 1 0
+z = dupfd fdof gplog 2 0
+r = execprog pk 0 get gv gpkl
+exit 127
+end
+cl gplog
+if lt pid 0
+ret false
+end
+s = waitkid pid 5000
+ret eq s 0
+end
+
+note drain: move status-pipe bytes into sbuf; true while the pipe may still deliver
+fn drain wait long to bool
+fd = fdof gsr
+g = get gv gsgot
+w = waitio fd 1 wait
+if le w 0
+ret true
+end
+if ge g 8
+z = read fd hbuf 0 64
+ret gt z 0
+end
+r = read fd sbuf g sub 8 g
+if le r 0
+ret false
+end
+put gv gsgot add g ulong r
+ret true
+end
+
+note watch: wait for pid (bwrap or the direct child) until the wall-clock deadline
+fn watch pid long tmo ulong to void
+t0 = monons
+dl = add t0 long tmo
+k = false
+live = eq get gv gnoiso 0
+for i ulong 999999
+if live
+live = drain 2000000
+end
+if not live
+z = sleepns long 2000000
+end
+r = waitpid int pid wst 0 4 1
+if eq r pid
+break
+end
+if and lt r 0 ne r -4
+break
+end
+if and not k gt monons dl
+z = killpid int pid 9
+k = true
+put gv gwall 1
+end
+end
+if live
+for j ulong 8
+if not drain 0
+break
+end
+end
+end
+put gv gbws wst32
+put gv gelms ulong div sub monons t0 1000000
+end
+
+note status: decode the reaper record (or, isolation off, the direct wait status)
+fn status to void
+if ne get gv gnoiso 0
+put gv gtag 88
+put gv gst get gv gbws
+ret
+end
+if lt get gv gsgot 5
+put gv gtag 0
+ret
+end
+put gv gtag ulong get sbuf 0
+put gv gst sb32 1
+end
+
+note spawn: one stage. md 0 compiles tdir/src into tdir/bin with the pinned compiler, md 1 runs tdir/bin
+note on tdir/in. tmo is the wall clock in ns. gsbf: 0 ran, 1 setup failed, 2 no sandbox pid,
+note 3 prlimit failed, 4 argument list too long.
+fn spawn md ulong tmo ulong to void
+put gv gsbf 0
+put gv gwall 0
+put gv gsgot 0
+put gv gtag 0
+for i ulong 8
+put sbuf i 0
+end
+for s ulong 9
+put gv add gfin s 9999
+end
+put gv gplog 9999
+ok = true
+if eq md 0
+ok = and setfd gfin trd f_src and setfd gfout tnew f_bin 448 setfd gferr tnew f_cerr 384
+end
+if ne md 0
+ok = and setfd gfin trd f_in and setfd gfout tnew f_out 384 setfd gferr tnew f_err 384
+end
+ok = and ok and pipe2 gsr gsw and pipe2 gbr gbw pipe2 gir giw
+if ne get gv gnoiso 0
+pk_noiso md
+end
+if eq get gv gnoiso 0
+pk_bwrap md
+end
+if ne get gv gpkov 0
+put gv gsbf 4
+clall
+ret
+end
+if not ok
+put gv gsbf 1
+clall
+ret
+end
+pid = fork
+if eq pid 0
+childgo
+end
+cl gfin
+cl gfout
+cl gferr
+cl gsw
+cl gbr
+cl giw
+if lt pid 0
+put gv gsbf 1
+clall
+ret
+end
+if eq get gv gnoiso 0
+gate md pid
+end
+cl gbw
+if eq get gv gsbf 0
+watch pid tmo
+end
+status
+clall
+end
+
+note gate: the prlimit handshake; on failure the sandbox is killed before it runs anything
+fn gate md ulong pid long to void
+cp = readinfo
+put gv gcpid cp
+if eq cp 0
+put gv gsbf 2
+end
+if ne cp 0
+if not limits md cp
+put gv gsbf 3
+end
+end
+if ne get gv gsbf 0
+z = killpid int pid 9
+s = waitkid pid 5000
+ret
+end
+one = new uchar 1 120
+w = write fdof gbw one 0 1
+end
+
+note ---- reaper: runs as /r reap /p inside the sandbox ----
+fn reapmain to int
+one = new uchar 5 69
+rec = new uchar 5 88
+n = argread 2 pa 0 4096
+if le n 0
+ret 126
+end
+pid = fork
+if eq pid 0
+reapkid ulong n
+end
+if lt pid 0
+note exec of the program never happened: 'E' + errno 0
+w = write 3 one 0 5
+ret 0
+end
+for i ulong 999999
+r = waitpid int pid wst 0 4 0
+if eq r pid
+break
+end
+if ne r -4
+break
+end
+end
+for i ulong 4
+put rec add i 1 get wst i
+end
+w = write 3 rec 0 5
+ret 0
+end
+
+fn reapkid n ulong to void
+z = dupfd 3 9 524288
+for f ulong 61
+if ne f 6
+c = fclose int add f 3
+end
+end
+pk_reset
+pk_beg
+for i ulong n
+pk_b get pa i
+end
+pk_end
+r = execprog pk 0 get gv gpkl
+e = new uchar 5 69
+v = ulong neg r
+for i ulong 4
+put e add i 1 uchar and shr v mul i 8 255
+end
+w = write 9 e 0 5
+exit 127
+end

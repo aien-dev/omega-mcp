@@ -1,0 +1,130 @@
+note omega-mcp: state shared by every unit. Globals hold only what host words read or write
+note directly (a global is never passed as an argument); request, tape, writer and reference data
+note live in fn main's frame and travel as sized parameters.
+
+note gv: scalar state cells, indexed by the g* constants below.
+global gv ulong 64
+note pk: packed argument list for execprog (u16 count, then u16 length + bytes per record).
+global pk uchar 4096
+note pa: path scratch; tdir: the per-call temporary directory path.
+global pa uchar 4096
+global tdir uchar 64
+note sx: this executable; omcp: the pinned compiler; datp: the reference data directory.
+global sx uchar 4096
+global omcp uchar 4096
+global datp uchar 4096
+note cb: captured bytes. 0..32767 program stdout, 32768..40959 program stderr,
+note 40960..45055 compiler stderr, 45056..110591 example source.
+global cb uchar 131072
+note wst: waitpid status; fds: pipefds output; sbuf: status record from the reaper.
+global wst uchar 8
+global fds uchar 8
+global sbuf uchar 8
+note inf: bwrap --info-fd text; lb: one server log line; rnd: random bytes; qb: decoded query.
+global inf uchar 1024
+global lb uchar 1024
+global rnd uchar 16
+global qb uchar 256
+note bsha: a sha256 digest (the compiler at start-up, then each compiled binary); hbuf: discard buffer
+note for unexpected status-pipe bytes.
+global bsha uchar 32
+global hbuf uchar 64
+
+note gv cells
+const gpkn ulong 0
+const gpkl ulong 1
+const gpkr ulong 2
+const gtdl ulong 3
+const gsxl ulong 4
+const gomcl ulong 5
+const gdatl ulong 6
+const gnoiso ulong 7
+const glbl ulong 8
+const gpkov ulong 9
+const gtag ulong 10
+const gst ulong 11
+const gwall ulong 12
+const gbws ulong 13
+const gelms ulong 14
+const gsbf ulong 15
+const gcrc ulong 16
+const gcln ulong 17
+const gcer ulong 18
+const gbinn ulong 19
+const goutn ulong 20
+const gerrn ulong 21
+const goutc ulong 22
+const gerrc ulong 23
+const gcerc ulong 24
+const gcern ulong 25
+const gtmo ulong 26
+const gsin ulong 27
+const gfin ulong 28
+const gfout ulong 29
+const gferr ulong 30
+const gsr ulong 31
+const gsw ulong 32
+const gbr ulong 33
+const gbw ulong 34
+const gir ulong 35
+const giw ulong 36
+const gpid ulong 37
+const gcpid ulong 38
+const gidt ulong 39
+const gpar ulong 40
+const garg ulong 41
+const gqll ulong 42
+const gqk ulong 43
+const gqc ulong 44
+const gqln ulong 45
+const gisok ulong 46
+const gexn ulong 47
+const gran ulong 48
+const gmeth ulong 49
+const gtool ulong 50
+const gres ulong 51
+const gplog ulong 52
+const gsgot ulong 53
+note geof: 1 while the rest of an overlong request line is being discarded
+const geof ulong 54
+note tools/call arguments: source and stdin string tokens, the query token, why a stage stopped
+const gsrct ulong 55
+const gstdt ulong 56
+const gqt ulong 57
+const gstop ulong 58
+
+note capture regions in cb
+const cbout ulong 0
+const cboutn ulong 32768
+const cberr ulong 32768
+const cberrn ulong 8192
+const cbcer ulong 40960
+const cbcern ulong 4096
+const cbex ulong 45056
+const cbexn ulong 65536
+
+note limits (bytes, seconds, nanoseconds)
+const maxsrc ulong 524288
+const maxline ulong 983040
+const runcpu ulong 10
+const runas ulong 268435456
+const runfsz ulong 1048576
+const runnpr ulong 5
+const cmpcpu ulong 20
+const cmpas ulong 536870912
+const cmpfsz ulong 16777216
+const cmpnpr ulong 4
+const cmpwall ulong 20000000000
+const deftmo ulong 5000
+const maxtmo ulong 30000
+
+note arm64 open flags: wronly|creat|excl|nofollow|cloexec = 557249; rdonly|nofollow|cloexec = 557056
+const ofnew int 557249
+const ofrd int 557056
+
+note texts
+text khex "0123456789abcdef"
+text ktmp "/tmp/omega-mcp-"
+text kpin "2c82480596bbdc50cda9626866209ef662d5834f278f839ff4ce0250c495029f"
+text kver "0.1.0"
+text kname "omega-mcp"

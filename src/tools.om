@@ -1,0 +1,1102 @@
+note omega-mcp tools: compile, run, explain_error, lookup. argcheck validates tools/call arguments
+note before any reply bytes are written; prep does the work (sandboxed stages for compile and run);
+note build writes the result object that becomes structuredContent and the text content.
+
+text a_source "source"
+text a_stdin "stdin"
+text a_tmo "timeout_ms"
+text a_query "query"
+text e_aunk "Invalid params: unknown argument; see the tool's inputSchema in tools/list"
+text e_asrc "Invalid params: arguments.source must be a string"
+text e_abig "Invalid params: arguments.source is over 524288 bytes"
+text e_astdin "Invalid params: arguments.stdin must be a string of at most 524288 bytes"
+text e_atmo "Invalid params: arguments.timeout_ms must be an integer 1..30000"
+text e_aq "Invalid params: arguments.query must be a string of 1..200 bytes or a nonnegative integer"
+text e_aql "Invalid params: arguments.query must be a string of 1..64 bytes"
+
+note ---- argument validation ----
+note argkey: one member k of arguments for tool w; 0 or a message index for argerr
+fn argkey ib view uchar 1572864 tape view uint 65536 k ulong w ulong to ulong
+v = add k 1
+o = js_off tape k
+y = js_type tape v
+if js_streq ib o a_source
+if gt w 2
+ret 1
+end
+if ne y jsstr
+ret 2
+end
+put gv gsrct v
+ret 0
+end
+if js_streq ib o a_stdin
+if ne w 2
+ret 1
+end
+if ne y jsstr
+ret 4
+end
+put gv gstdt v
+ret 0
+end
+if js_streq ib o a_tmo
+ret argtmo ib tape v w
+end
+if js_streq ib o a_query
+if lt w 3
+ret 1
+end
+if eq y jsstr
+put gv gqt v
+ret 0
+end
+if and eq w 3 eq y jsnum
+if js_isu ib js_off tape v
+put gv gqt v
+ret 0
+end
+end
+if eq w 3
+ret 6
+end
+ret 7
+end
+ret 1
+end
+
+fn argtmo ib view uchar 1572864 tape view uint 65536 v ulong w ulong to ulong
+if ne w 2
+ret 1
+end
+if ne js_type tape v jsnum
+ret 5
+end
+o = js_off tape v
+if not js_isu ib o
+ret 5
+end
+t = js_tou ib o
+if or lt t 1 gt t maxtmo
+ret 5
+end
+put gv gtmo mul t 1000000
+ret 0
+end
+
+note argsize: decoded sizes (ob is scratch: nothing has been written to it yet)
+fn argsize ib view uchar 1572864 tape view uint 65536 ob edit uchar 787472 w ulong to ulong
+if le w 2
+n = js_sget ib js_off tape get gv gsrct ob
+if or lt n 0 gt ulong n maxsrc
+ret 3
+end
+s = get gv gstdt
+if ne s jsnone
+m = js_sget ib js_off tape s ob
+if or lt m 0 gt ulong m 524288
+ret 4
+end
+end
+ret 0
+end
+q = get gv gqt
+if ne js_type tape q jsstr
+ret 0
+end
+k = js_sget ib js_off tape q ob
+if eq w 4
+if or lt k 1 gt k 64
+ret 7
+end
+end
+if or lt k 1 gt k 200
+ret 6
+end
+ret 0
+end
+
+fn argcheck ib view uchar 1572864 tape view uint 65536 ob edit uchar 787472 w ulong to ulong
+a = get gv garg
+put gv gsrct jsnone
+put gv gstdt jsnone
+put gv gqt jsnone
+put gv gtmo mul deftmo 1000000
+if ne a jsnone
+k = js_first tape a
+while ne k jsnone bound 999999
+e = argkey ib tape k w
+if ne e 0
+ret e
+end
+k = js_mnext tape k
+end
+end
+if and le w 2 eq get gv gsrct jsnone
+ret 2
+end
+if and eq w 3 eq get gv gqt jsnone
+ret 6
+end
+if and eq w 4 eq get gv gqt jsnone
+ret 7
+end
+ret argsize ib tape ob w
+end
+
+fn argerr ob edit uchar 787472 ib view uchar 1572864 tape view uint 65536 e ulong to void
+if eq e 1
+rerr ob ib tape jrpar e_aunk
+end
+if eq e 2
+rerr ob ib tape jrpar e_asrc
+end
+if eq e 3
+rerr ob ib tape jrpar e_abig
+end
+if eq e 4
+rerr ob ib tape jrpar e_astdin
+end
+if eq e 5
+rerr ob ib tape jrpar e_atmo
+end
+if eq e 6
+rerr ob ib tape jrpar e_aq
+end
+if eq e 7
+rerr ob ib tape jrpar e_aql
+end
+end
+
+note ---- staging: compile and run in the sandbox ----
+text l_cer " compile="
+text l_res " run="
+text l_stop " stop="
+text l_ms " ms="
+text l_rmf " TEMPDIR-NOT-REMOVED"
+
+fn wfile t view uchar * a view uchar * to bool
+f = tnew t 384
+if lt f 0
+ret false
+end
+ok = wfull int f a len a
+c = fclose int f
+ret and ok eq c 0
+end
+
+note cbat: whether cb[p..) starts with key
+fn cbat p ulong key view uchar * to bool
+for j ulong len key
+if ne get cb add p j get key j
+ret false
+end
+end
+ret true
+end
+
+note cbnum: the decimal number after the first key in cb[off..off+n), or jsnone
+fn cbnum off ulong n ulong key view uchar * to ulong
+m = len key
+if lt n m
+ret jsnone
+end
+for i ulong add sub n m 1
+if cbat add off i key
+ret cbdig add add off i m sub sub n i m
+end
+end
+ret jsnone
+end
+
+fn cbdig p ulong n ulong to ulong
+v = ulong 0
+k = ulong 0
+for i ulong n
+c = get cb add p i
+if or lt c 48 gt c 57
+break
+end
+if lt k 9
+v = add mul v 10 ulong sub c 48
+end
+k = add k 1
+end
+if eq k 0
+ret jsnone
+end
+ret v
+end
+
+text c_line "line "
+text c_error "error "
+
+note cinterp: gcer 0 compiled, 1 refused with a diagnostic (gqk code, gqln line), 2 stopped (gstop why)
+fn cinterp to void
+put gv gcer 2
+s = get gv gsbf
+if ne s 0
+put gv gstop s
+ret
+end
+t = get gv gtag
+st = get gv gst
+if eq get gv gwall 1
+if or ne get gv gnoiso 0 eq t 0
+put gv gstop 5
+ret
+end
+end
+if eq t 88
+sig = and st 127
+code = and shr st 8 255
+if and eq sig 0 eq code 0
+put gv gcer 0
+ret
+end
+if eq sig 0
+o = cbcer
+n = get gv gcerc
+k = cbnum o n c_error
+l = cbnum o n c_line
+if and eq k code ne l jsnone
+put gv gcer 1
+put gv gqk k
+put gv gqln l
+ret
+end
+put gv gstop 9
+put gv gqc code
+ret
+end
+put gv gstop 7
+put gv gqc sig
+ret
+end
+if eq t 69
+put gv gstop 8
+put gv gqc st
+ret
+end
+put gv gstop 6
+end
+
+note rinterp: gres 1 exit (gqc), 2 trap (gqc), 3 cpu soft limit, 4 SIGKILL, 5 file size, 6 wall clock,
+note 7 other signal (gqc), 8 exec failed (gqc errno), 9 sandbox failure (gstop why)
+fn rinterp to void
+put gv gres 9
+s = get gv gsbf
+if ne s 0
+put gv gstop s
+ret
+end
+t = get gv gtag
+st = get gv gst
+if eq get gv gwall 1
+if or ne get gv gnoiso 0 eq t 0
+put gv gres 6
+ret
+end
+end
+if eq t 88
+sig = and st 127
+code = and shr st 8 255
+if eq sig 0
+put gv gres 1
+put gv gqc code
+if and ge code 101 le code 114
+put gv gres 2
+put gv gqc sub code 100
+end
+ret
+end
+put gv gqc sig
+put gv gres 7
+if eq sig 24
+put gv gres 3
+end
+if eq sig 25
+put gv gres 5
+end
+if eq sig 9
+put gv gres 4
+end
+ret
+end
+if eq t 69
+put gv gres 8
+put gv gqc st
+ret
+end
+put gv gstop 6
+end
+
+fn shabin to void
+f = trd f_bin
+if lt f 0
+put gv gcer 2
+put gv gstop 10
+ret
+end
+ok = sha_fd int f
+c = fclose int f
+if not ok
+put gv gcer 2
+put gv gstop 10
+end
+end
+
+fn compile1 to void
+spawn 0 cmpwall
+z = capname f_cerr cbcer cbcern gcerc
+put gv gcern z
+cinterp
+if eq get gv gcer 0
+shabin
+end
+lg_t l_cer
+lg_n get gv gcer
+lg_t l_ms
+lg_n get gv gelms
+end
+
+fn run1 to void
+spawn 1 get gv gtmo
+z = capname f_out cbout cboutn goutc
+put gv goutn z
+y = capname f_err cberr cberrn gerrc
+put gv gerrn y
+rinterp
+lg_t l_res
+lg_n get gv gres
+lg_b 47
+lg_n get gv gqc
+lg_t l_ms
+lg_n get gv gelms
+end
+
+fn stage ib view uchar 1572864 tape view uint 65536 ob edit uchar 787472 to void
+put gv gcer 2
+put gv gres 9
+put gv gstop 0
+put gv gqc 0
+put gv gbinn 0
+for s ulong 6
+put gv add goutn s 0
+end
+if not mktemp
+put gv gstop 1
+ret
+end
+n = js_sget ib js_off tape get gv gsrct ob
+ok = wfile f_src part ob 0 ulong n
+m = ulong 0
+d = get gv gstdt
+if ne d jsnone
+m = ulong js_sget ib js_off tape d ob
+end
+ok = and ok wfile f_in part ob 0 m
+if not ok
+put gv gstop 1
+end
+if ok
+compile1
+if and eq get gv gtool 2 eq get gv gcer 0
+run1
+end
+end
+if ne get gv gstop 0
+lg_t l_stop
+lg_n get gv gstop
+end
+if not rmtemp
+lg_t l_rmf
+end
+end
+
+note ---- result builders ----
+text j_ok "ok"
+text j_bb "binary_bytes"
+text j_sha "sha256"
+text j_line "line"
+text j_mean "meaning"
+text j_fix "fix"
+text j_cstd "compiler_stderr"
+text j_stop "stopped"
+text j_csha "compiler_sha256"
+text j_comp "compile"
+text j_exit "exit"
+text j_out "stdout"
+text j_outb "stdout_bytes"
+text j_outt "stdout_truncated"
+text j_err "stderr"
+text j_errb "stderr_bytes"
+text j_errt "stderr_truncated"
+text j_lims "limits"
+text j_iso "isolation"
+text j_kind "kind"
+text j_trap "trap"
+text j_exc "exit_code"
+text j_limit "limit"
+text j_sig "signal"
+text j_errno "errno"
+text j_cpu "cpu_seconds"
+text j_as "address_space_bytes"
+text j_fsz "file_size_bytes"
+text j_npr "processes"
+text j_note "note"
+text j_match "match"
+text j_res "results"
+text j_count "count"
+text j_summ "summary"
+text j_form "form"
+text j_ex "example"
+text j_expect "expect"
+text j_more "more"
+text j_errors "errors"
+text j_traps "traps"
+text j_words "words"
+text j_topics "topics"
+text j_exs "examples"
+text j_cerr "compile_error"
+text j_exst "exit_status"
+text v_normal "normal"
+text v_limit "limit"
+text v_signal "signal"
+text v_nost "not_started"
+text v_sbx "sandbox_error"
+text v_cput "cpu_time"
+text v_kill "killed"
+text v_fsz "file_size"
+text v_wall "wall_clock"
+text v_kw "keyword"
+text v_topic "topic"
+text v_search "search"
+text v_iso "bwrap+prlimit: no network, no host files, cleared environment, cpu/as/fsize/nproc limits, server wall clock"
+text v_noiso "OFF (--test-only-no-isolation): ran on the host with the server environment and no limits except the wall clock"
+text n_kill "SIGKILL: the hard cpu limit (11 s) or the kernel out-of-memory killer"
+text n_segv "SIGSEGV: often the 256 MiB address-space limit or a stack overflow"
+text n_trap "an explicit exit status 101..114 looks the same as this trap"
+
+fn hexsha ob edit uchar * to void
+js_wsbeg ob
+for i ulong 32
+b = ulong get bsha i
+js_wsb ob hexof shr b 4
+js_wsb ob hexof and b 15
+end
+js_wsend ob
+end
+
+text s_1 "the sandbox could not be set up (temporary files, pipes or fork failed)"
+text s_2 "bwrap did not report the sandbox pid; nothing ran"
+text s_3 "prlimit could not apply the resource limits; nothing ran"
+text s_4 "the sandbox argument list is too long"
+text s_5 "the compile wall clock (20 s) ran out"
+text s_6 "the sandbox ended without a status record"
+text s_7 "the compiler was stopped by signal "
+text s_8 "the compiler could not be started, errno "
+text s_9 "the compiler exited without a diagnostic, status "
+text s_10 "the compiled binary could not be read"
+
+fn stopmsg ob edit uchar * to void
+s = get gv gstop
+js_wsbeg ob
+if eq s 1
+ws_t ob s_1
+end
+if eq s 2
+ws_t ob s_2
+end
+if eq s 3
+ws_t ob s_3
+end
+if eq s 4
+ws_t ob s_4
+end
+if eq s 5
+ws_t ob s_5
+end
+if eq s 6
+ws_t ob s_6
+end
+if eq s 7
+ws_t ob s_7
+ws_n ob get gv gqc
+end
+if eq s 8
+ws_t ob s_8
+ws_n ob get gv gqc
+end
+if eq s 9
+ws_t ob s_9
+ws_n ob get gv gqc
+end
+if eq s 10
+ws_t ob s_10
+end
+js_wsend ob
+end
+
+note dnum: entry v (decimal key) of the data object root
+fn dnum ds view uchar 393216 dt view uint 98304 root view uchar * v ulong to ulong
+r = dmem ds dt 0 root
+d = new uchar 20 0
+n = u2d v d
+ret dmem ds dt r view part d 0 n
+end
+
+note dmcopy: "key": value of member key of data object e, when present
+fn dmcopy ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 e ulong key view uchar * to void
+m = dmem ds dt e key
+if ne m jsnone
+wt ob key
+dcopy ob ds dt m
+end
+end
+
+note bcompf: the compile result members
+fn bcompf ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 to void
+c = get gv gcer
+wkb ob j_ok eq c 0
+if eq c 0
+wku ob j_bb get gv gbinn
+wt ob j_sha
+hexsha ob
+end
+if eq c 1
+wt ob k_error
+js_wobj ob
+wku ob j_line get gv gqln
+wku ob k_code get gv gqk
+e = dnum ds dt j_errors get gv gqk
+dmcopy ob ds dt e j_mean
+dmcopy ob ds dt e j_fix
+wt ob j_cstd
+w_cb ob cbcer get gv gcerc get gv gcern
+js_wobje ob
+end
+if eq c 2
+wt ob k_error
+js_wobj ob
+wt ob j_stop
+stopmsg ob
+wt ob j_cstd
+w_cb ob cbcer get gv gcerc get gv gcern
+js_wobje ob
+end
+wkt ob j_csha kpin
+end
+
+fn wiso ob edit uchar * to void
+if eq get gv gnoiso 0
+wkt ob j_iso v_iso
+ret
+end
+wkt ob j_iso v_noiso
+end
+
+fn bexit ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 to void
+g = get gv gres
+q = get gv gqc
+js_wobj ob
+if eq g 1
+wkt ob j_kind v_normal
+wku ob k_code q
+end
+if eq g 2
+wkt ob j_kind j_trap
+wku ob j_trap q
+wku ob j_exc add q 100
+e = dnum ds dt j_traps q
+dmcopy ob ds dt e j_mean
+wkt ob j_note n_trap
+end
+if and ge g 3 le g 6
+wkt ob j_kind v_limit
+end
+if eq g 3
+wkt ob j_limit v_cput
+wku ob j_sig 24
+wku ob j_cpu runcpu
+end
+if eq g 4
+wkt ob j_limit v_kill
+wku ob j_sig 9
+wkt ob j_note n_kill
+end
+if eq g 5
+wkt ob j_limit v_fsz
+wku ob j_sig 25
+wku ob j_fsz runfsz
+end
+if eq g 6
+wkt ob j_limit v_wall
+wku ob a_tmo div get gv gtmo 1000000
+end
+if eq g 7
+wkt ob j_kind v_signal
+wku ob j_sig q
+if eq q 11
+wkt ob j_note n_segv
+end
+end
+if eq g 8
+wkt ob j_kind v_nost
+wku ob j_errno q
+end
+if eq g 9
+wkt ob j_kind v_sbx
+wt ob k_msg
+stopmsg ob
+end
+js_wobje ob
+end
+
+fn blims ob edit uchar * to void
+js_wobj ob
+wku ob a_tmo div get gv gtmo 1000000
+if eq get gv gnoiso 0
+wku ob j_cpu runcpu
+wku ob j_as runas
+wku ob j_fsz runfsz
+wku ob j_npr runnpr
+end
+js_wobje ob
+end
+
+fn bouts ob edit uchar * to void
+wt ob j_out
+w_cb ob cbout get gv goutc get gv goutn
+wku ob j_outb get gv goutn
+wkb ob j_outt gt get gv goutn get gv goutc
+wt ob j_err
+w_cb ob cberr get gv gerrc get gv gerrn
+wku ob j_errb get gv gerrn
+wkb ob j_errt gt get gv gerrn get gv gerrc
+end
+
+fn brun ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 to void
+js_wobj ob
+wt ob j_comp
+js_wobj ob
+bcompf ob ds dt
+js_wobje ob
+if eq get gv gcer 0
+wt ob j_exit
+bexit ob ds dt
+bouts ob
+end
+wt ob j_lims
+blims ob
+wiso ob
+js_wobje ob
+end
+
+note ---- explain_error ----
+text q_error "error"
+text q_line "line"
+text q_trap "trap"
+text q_exit "exit"
+text m_unk "not recognised: give a compiler error code 1..30, an 'omc: line N: error K' line, 'trap T' (T 1..14) or a trap exit status 101..114"
+text m_noent "no entry at this pin for that code; compiler error codes are 1..24 and 27..30, trap codes 1..14"
+
+fn lower c uchar to uchar
+if and ge c 65 le c 90
+ret add c 32
+end
+ret c
+end
+
+note qat: whether q[p..) starts with key, case-insensitively (key is lower case)
+fn qat q view uchar 256 p ulong key view uchar * to bool
+for j ulong len key
+if ne lower get q add p j get key j
+ret false
+end
+end
+ret true
+end
+
+note numafter: the number after the first case-insensitive key in q[0..n) (spaces, ':', '=' and '#'
+note skipped), or jsnone
+fn numafter q view uchar 256 n ulong key view uchar * to ulong
+m = len key
+if lt n m
+ret jsnone
+end
+for i ulong add sub n m 1
+if qat q i key
+ret qdig q add i m n
+end
+end
+ret jsnone
+end
+
+fn qdig q view uchar 256 p ulong n ulong to ulong
+i = p
+while lt i n bound 256
+c = get q i
+if not or or eq c 32 eq c 58 or eq c 61 eq c 35
+break
+end
+i = add i 1
+end
+v = ulong 0
+k = ulong 0
+while lt i n bound 256
+c = get q i
+if or lt c 48 gt c 57
+break
+end
+if lt k 9
+v = add mul v 10 ulong sub c 48
+end
+k = add k 1
+i = add i 1
+end
+if eq k 0
+ret jsnone
+end
+ret v
+end
+
+note byexit: a bare number or exit status: 101..114 a trap, 1..30 a compiler error
+fn byexit v ulong to void
+if and ge v 101 le v 114
+put gv gexn 2
+put gv gqc sub v 100
+ret
+end
+if and ge v 1 le v 30
+put gv gexn 1
+put gv gqk v
+end
+end
+
+note classify: gexn 0 unknown, 1 compiler error gqk (line gqln or jsnone), 2 trap gqc
+fn classify ib view uchar 1572864 tape view uint 65536 to void
+q = new uchar 256 0
+put gv gexn 0
+put gv gqln jsnone
+t = get gv gqt
+if eq js_type tape t jsnum
+byexit js_tou ib js_off tape t
+ret
+end
+r = js_sget ib js_off tape t q
+n = ulong r
+k = numafter q n q_error
+if ne k jsnone
+put gv gexn 1
+put gv gqk k
+put gv gqln numafter q n q_line
+ret
+end
+p = numafter q n q_trap
+if ne p jsnone
+if and ge p 1 le p 14
+put gv gexn 2
+put gv gqc p
+end
+ret
+end
+x = numafter q n q_exit
+if ne x jsnone
+byexit x
+ret
+end
+b = qdig q 0 n
+if ne b jsnone
+byexit b
+end
+end
+
+note cpent: every member of data entry e except "example" (whose value token is returned, or jsnone)
+fn cpent ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 e ulong to ulong
+x = jsnone
+k = js_first dt e
+while ne k jsnone bound 999999
+o = js_off dt k
+if js_streq ds o j_ex
+x = add k 1
+else
+js_wtok ob ds jskey o
+dcopy ob ds dt add k 1
+end
+k = js_mnext dt k
+end
+ret x
+end
+
+text k_exdir "examples/"
+text k_exom ".om"
+
+note loadex: example source data/examples/<id>.om into cb[cbex..); the byte count, or jsnone
+fn loadex id view uchar 64 n ulong to ulong
+for i ulong n
+c = get id i
+ok = or and ge c 97 le c 122 or and ge c 48 le c 57 eq c 95
+if not ok
+ret jsnone
+end
+end
+p = pa_d k_exdir
+for i ulong n
+put pa add p i get id i
+end
+p = pa_add add p n k_exom
+f = fopen pa 0 p ofrd 0
+if lt f 0
+ret jsnone
+end
+z = capfd int f cbex cbexn gqll
+c = fclose int f
+if gt z cbexn
+ret jsnone
+end
+ret z
+end
+
+note bexample: {"id": ..., "expect": ..., "source": ...} for the example id token x
+fn bexample ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 x ulong to void
+id = new uchar 64 0
+js_wobj ob
+wt ob k_id
+dcopy ob ds dt x
+n = sub js_span dt x 2
+if gt n 64
+n = 64
+end
+o = add js_off dt x 1
+for i ulong n
+put id i get ds add o i
+end
+r = dmem ds dt 0 j_exs
+e = dmem ds dt r view part id 0 n
+wt ob j_expect
+if eq e jsnone
+js_wnull ob
+end
+if ne e jsnone
+dcopy ob ds dt e
+end
+wt ob a_source
+s = loadex id n
+if eq s jsnone
+js_wnull ob
+end
+if ne s jsnone
+w_cb ob cbex s s
+end
+js_wobje ob
+end
+
+fn bexplain ob edit uchar 787472 ib view uchar 1572864 tape view uint 65536 ds view uchar 393216 dt view uint 98304 to void
+js_wobj ob
+wt ob a_query
+rcopy ob ib tape get gv gqt
+x = get gv gexn
+e = jsnone
+if eq x 1
+e = dnum ds dt j_errors get gv gqk
+end
+if eq x 2
+e = dnum ds dt j_traps get gv gqc
+end
+if eq e jsnone
+put gv gisok 0
+if eq x 0
+wkt ob k_msg m_unk
+end
+if ne x 0
+wkt ob k_msg m_noent
+end
+js_wobje ob
+ret
+end
+explhead ob
+v = cpent ob ds dt e
+if ne v jsnone
+wt ob j_ex
+bexample ob ds dt v
+end
+js_wobje ob
+end
+
+fn explhead ob edit uchar * to void
+if eq get gv gexn 1
+wkt ob j_kind j_cerr
+wku ob k_code get gv gqk
+wku ob j_exst get gv gqk
+if ne get gv gqln jsnone
+wku ob j_line get gv gqln
+end
+ret
+end
+wkt ob j_kind j_trap
+wku ob j_trap get gv gqc
+wku ob j_exst add get gv gqc 100
+end
+
+note ---- lookup ----
+text m_nomat "no keyword or topic name or summary contains the query"
+
+note dsat: whether ds[p..) starts with q[0..gqln), case-insensitively
+fn dsat ds view uchar 393216 p ulong q view uchar 256 to bool
+for j ulong get gv gqln
+if ne lower get ds add p j lower get q j
+ret false
+end
+end
+ret true
+end
+
+note cisub: whether q[0..gqln) occurs case-insensitively in ds[o..o+n)
+fn cisub ds view uchar 393216 o ulong n ulong q view uchar 256 to bool
+m = get gv gqln
+if lt n m
+ret false
+end
+for i ulong add sub n m 1
+if dsat ds add o i q
+ret true
+end
+end
+ret false
+end
+
+fn lsitem ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 k ulong kind ulong to void
+js_wobj ob
+wt ob k_name
+js_wtok ob ds jsstr js_off dt k
+if eq kind 1
+wkt ob j_kind v_kw
+end
+if eq kind 2
+wkt ob j_kind v_topic
+end
+dmcopy ob ds dt add k 1 j_form
+dmcopy ob ds dt add k 1 j_summ
+js_wobje ob
+end
+
+fn lshit ds view uchar 393216 dt view uint 98304 k ulong q view uchar 256 to bool
+if cisub ds add js_off dt k 1 sub js_span dt k 2 q
+ret true
+end
+s = dmem ds dt add k 1 j_summ
+if eq s jsnone
+ret false
+end
+ret cisub ds add js_off dt s 1 sub js_span dt s 2 q
+end
+
+fn lsgroup ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 q view uchar 256 kind ulong to void
+r = dmem ds dt 0 j_words
+if eq kind 2
+r = dmem ds dt 0 j_topics
+end
+k = js_first dt r
+while ne k jsnone bound 999999
+if lshit ds dt k q
+c = get gv gqll
+if lt c 20
+lsitem ob ds dt k kind
+end
+put gv gqll add c 1
+end
+k = js_mnext dt k
+end
+end
+
+fn blookup ob edit uchar 787472 ib view uchar 1572864 tape view uint 65536 ds view uchar 393216 dt view uint 98304 to void
+q = new uchar 256 0
+t = get gv gqt
+n = ulong js_sget ib js_off tape t q
+put gv gqln n
+js_wobj ob
+wt ob a_query
+rcopy ob ib tape t
+kind = ulong 1
+e = dmem ds dt dmem ds dt 0 j_words view part q 0 n
+if eq e jsnone
+kind = 2
+e = dmem ds dt dmem ds dt 0 j_topics view part q 0 n
+end
+if ne e jsnone
+lexact ob ds dt e kind
+js_wobje ob
+ret
+end
+wkt ob j_match v_search
+wt ob j_res
+js_warr ob
+put gv gqll 0
+lsgroup ob ds dt q 1
+lsgroup ob ds dt q 2
+js_warre ob
+c = get gv gqll
+wku ob j_count c
+wkb ob j_more gt c 20
+if eq c 0
+put gv gisok 0
+wkt ob k_msg m_nomat
+end
+js_wobje ob
+end
+
+fn lexact ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 e ulong kind ulong to void
+if eq kind 1
+wkt ob j_match v_kw
+end
+if eq kind 2
+wkt ob j_match v_topic
+end
+wt ob k_name
+js_wtok ob ds jsstr js_off dt sub e 1
+v = cpent ob ds dt e
+if ne v jsnone
+wt ob j_ex
+bexample ob ds dt v
+end
+end
+
+note ---- tools/call entry points ----
+fn prep ib view uchar 1572864 tape view uint 65536 ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 to void
+put gv gisok 1
+w = get gv gtool
+if le w 2
+stage ib tape ob
+c = get gv gcer
+if eq c 2
+put gv gisok 0
+end
+if and eq w 2 and eq c 0 eq get gv gres 9
+put gv gisok 0
+end
+ret
+end
+if eq w 3
+classify ib tape
+end
+end
+
+fn build ib view uchar 1572864 tape view uint 65536 ob edit uchar 787472 ds view uchar 393216 dt view uint 98304 to void
+w = get gv gtool
+if eq w 1
+js_wobj ob
+bcompf ob ds dt
+wiso ob
+js_wobje ob
+end
+if eq w 2
+brun ob ds dt
+end
+if eq w 3
+bexplain ob ib tape ds dt
+end
+if eq w 4
+blookup ob ib tape ds dt
+end
+end
