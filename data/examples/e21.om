@@ -1,0 +1,5 @@
+fn main to int
+a = new uint 4 0
+put a 4 1
+ret 0
+end

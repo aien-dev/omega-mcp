@@ -1,0 +1,5 @@
+fn main to int
+x = int 300
+y = uchar x
+ret 0
+end

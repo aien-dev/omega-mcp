@@ -1,0 +1,7 @@
+fn main to int
+i = int 0
+while ge i 0 bound 10
+i = add i 1
+end
+ret 0
+end

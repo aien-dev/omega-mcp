@@ -1,0 +1,6 @@
+fn f x int x int to int
+ret 0
+end
+fn main to int
+ret 0
+end

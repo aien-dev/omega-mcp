@@ -1,0 +1,17 @@
+note recursion, a void function, ret with and without a value, grouping parentheses
+fn fib n uint to uint
+if lt n 2
+ret n
+end
+ret add (fib sub n 1) (fib sub n 2)
+end
+fn nothing v uint to void
+if gt v 1
+ret
+end
+end
+fn main to int
+nothing 3
+x = (fib 10)
+ret int x
+end

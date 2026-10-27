@@ -1,0 +1,6 @@
+omega-mcp
+Copyright 2026 AIEN (aien-dev)
+
+This product includes software from omega-mv (https://github.com/aien-dev/omega-mv), commit
+e5b32567a7aff3ce594e3254a622a846a6cd190b, copied unchanged under vendor/omega-mv/:
+  om/sha256/sha256-om2.om, seed/json/json.om, seed/json/jsonw.om

@@ -1,0 +1,37 @@
+note owned mappings and checked device calls; device calls use fd -1 here, so no device is opened
+global hdr uchar 48
+global prm uchar 32
+global data uchar 64
+global ends uchar 8
+global cnt uchar 4
+global buf uchar 8
+text name "m"
+fn ck yes bool to void
+if not yes
+exit 80
+end
+end
+fn main to int
+h = mapnew neg int 1 0 4096 3 34
+ck gt h 0
+ck gt mapaddr h 4096
+ck eq mapset h 8 8 77 0
+ck eq mapget h 8 8 77
+put buf 0 5
+ck eq mapwrite h 0 buf 0 1 1
+ck eq mapread h 0 buf 1 1 1
+ck eq get buf 1 5
+ck eq mapdrop h 0
+ck eq pipefds ends 0 8 0 0
+rd = int get ends 0
+ck eq devctl rd uint 21531 cnt 0 4 0
+ck eq devcall neg int 1 uint 3223340587 hdr 0 32 prm 0 0 neg long 9
+ck eq uvmctl neg int 1 uint 75 data 8 8 neg long 9
+m = int memfd name 0 len name 0
+ck ge m 0
+ck eq ftrunc m 4096 0
+r = maphold 68719476736 4096
+ck gt r 0
+ck eq mapbind r m 0 3 0
+ret 0
+end

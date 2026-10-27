@@ -1,0 +1,12 @@
+note f64 and f32 values, fsqrt, fabs, fmin, fmax, conversions and bitcast
+fn main to int
+if ne bitcast ulong 1.0f64 4607182418800017408
+ret 1
+end
+r = fsqrt 16.0f64
+b = fabs neg 1.5f64
+c = fmax b fmin 0.25f64 3.0f64
+d = f32 1.5f64
+v = add mul r 2.0f64 add c f64 d
+ret int v
+end

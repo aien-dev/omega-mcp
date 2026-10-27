@@ -1,0 +1,32 @@
+note fork, wait, signals, pipes, dup, process groups and sessions, and a failed execprog
+global st uchar 4
+global ends uchar 8
+fn ck yes bool to void
+if not yes
+exit 80
+end
+end
+fn main to int
+ck eq pipefds ends 0 8 0 0
+p = fork
+if eq p 0
+exit 7
+end
+ck gt p 0
+ck eq waitpid int p st 0 4 0 p
+ck eq get st 1 7
+ck eq killpid int getpid 0 0
+ck ge getppid 0
+ck ge getpgid 0 0
+ck ge getsid 0 0
+r = setpgid 0 0
+s = setsid
+ck eq dupfd 1 9 0 9
+x = new uchar 6 0
+put x 0 1
+put x 2 2
+put x 4 47
+put x 5 120
+ck eq execprog x 0 6 neg long 2
+ret 0
+end

@@ -1,0 +1,4 @@
+struct S a uint
+fn main to int
+ret 0
+end

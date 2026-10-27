@@ -1,0 +1,7 @@
+om2
+layout hdr 4
+field a uint at 2 little
+end
+fn main to int
+ret 0
+end

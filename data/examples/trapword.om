@@ -1,0 +1,4 @@
+note trap N stops the program; in program mode the exit status is 100 + N
+fn main to int
+trap 4
+end

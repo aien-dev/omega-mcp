@@ -1,0 +1,6 @@
+note write the bytes of a text to stdout (fd 1); main's value is the exit status
+text msg "hello\n"
+fn main to int
+w = write 1 msg 0 len msg
+ret 0
+end

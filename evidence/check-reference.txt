@@ -1,0 +1,5 @@
+words 177 errors 28 traps 14 topics 12 examples 68 bytes 168454 failures 0
+negative control (moved citation): DETECTED: ["word add: first citation 'omega-mv@e5b32567 seed/omc/omc.om:973-974' is not its keyword-table line 970"]
+negative control (wrong expectation): DETECTED: ["example hello: wanted exit 1, got 0 stdout b'hello\\n'"]
+negative control (missing keyword): DETECTED: ["keyword 'mapbind' has no lookup entry"]
+PASS

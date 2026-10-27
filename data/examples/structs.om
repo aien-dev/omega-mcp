@@ -1,0 +1,9 @@
+note a struct on the stack, field get and put, sizeof and offsetof
+struct Pt x long y long end
+fn main to int
+p = new Pt 3 4
+put p x add get p x 10
+s = add get p x get p y
+z = add sizeof Pt offsetof Pt y
+ret int add s long z
+end

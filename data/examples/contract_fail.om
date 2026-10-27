@@ -1,0 +1,9 @@
+om2
+note a false requires stops the program with trap 9 (exit 109)
+fn step x uint to uint
+requires lt x 2
+ret add x 1
+end
+fn main to int
+ret int step 5
+end

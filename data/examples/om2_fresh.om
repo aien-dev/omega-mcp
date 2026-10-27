@@ -1,0 +1,12 @@
+om2
+note fresh: incoming elements are unspecified, so every element must be written before it is read
+fn f s edit uchar 4 fresh to ulong
+for i ulong 4 unroll
+put s i uchar add i 1
+end
+ret add ulong get s 0 ulong get s 3
+end
+fn main to int
+a = new uchar 4 0
+ret int f a
+end

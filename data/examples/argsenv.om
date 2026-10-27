@@ -1,0 +1,10 @@
+note the argument and environment vectors; the server runs programs with no arguments and an empty environment
+global buf uchar 64
+fn main to int
+n = argcnt
+r = argread 0 buf 0 64
+if gt envcnt 0
+x = envread 0 buf 0 64
+end
+ret int n
+end

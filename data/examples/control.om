@@ -1,0 +1,29 @@
+note while with a bound, continue, break, for, if/else and bool values
+fn pick c bool to uint
+if c
+ret 100
+else
+ret 1
+end
+end
+fn main to int
+s = uint 0
+i = uint 0
+while lt i 100 bound 1000
+i = add i 1
+if eq rem i 2 0
+continue
+end
+if gt i 9
+break
+end
+s = add s i
+end
+for j uint 4
+s = add s j
+end
+t = true
+f = false
+s = add s pick and t not f
+ret int s
+end

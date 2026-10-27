@@ -215,8 +215,11 @@ def check(ref, exdir, src, omc, run_examples=True):
 def check_reproduce(omc, code, tmp):
     """error 1: stdin is a directory (read fails); error 2: stdout is /dev/full (write fails)."""
     if code == 1:
-        with open("/", "rb") as d:
+        d = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
+        try:
             r = subprocess.run([omc], stdin=d, capture_output=True)
+        finally:
+            os.close(d)
     else:
         p = os.path.join(tmp, "ok.om")
         open(p, "w").write("fn main to int\nret 0\nend\n")

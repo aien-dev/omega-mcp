@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "omega": {
+      "type": "stdio",
+      "command": "/path/to/omega-mcp/build/omega-mcp",
+      "args": []
+    }
+  }
+}

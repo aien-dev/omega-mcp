@@ -1,6 +1,6 @@
 #!/bin/sh
 # Build omega-mcp with the pinned Omega compiler.
-#   OMC=/path/to/omc ./build.sh        (default: $OMEGA_SRC/seed/out/omc)
+#   OMC=/path/to/omc ./build.sh        (default: $OMEGA_SRC/seed/out/omc, OMEGA_SRC default ../omega-mv)
 # Output: build/omega-mcp, build/omc (copy of the pinned compiler), build/data/ (reference data).
 # The unit is the concatenation listed in src/UNITS: the sha256 unit first (its `layout` must precede
 # every fn; `export fn` becomes `fn` because a program unit has a `fn main`), then the JSON units,
@@ -8,7 +8,7 @@
 set -eu
 cd "$(dirname "$0")"
 PIN=2c82480596bbdc50cda9626866209ef662d5834f278f839ff4ce0250c495029f
-OMC=${OMC:-${OMEGA_SRC:-/home/drakestapleton/handoffs/OmegaReach/omega-src}/seed/out/omc}
+OMC=${OMC:-${OMEGA_SRC:-../omega-mv}/seed/out/omc}
 got=$(sha256sum "$OMC" | cut -d' ' -f1)
 if [ "$got" != "$PIN" ]; then
   echo "build.sh: $OMC has sha256 $got, expected the pin $PIN" >&2

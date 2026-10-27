@@ -1,0 +1,6260 @@
+{
+ "pin": {
+  "omega_mv": "e5b32567a7aff3ce594e3254a622a846a6cd190b",
+  "omc_sha256": "2c82480596bbdc50cda9626866209ef662d5834f278f839ff4ce0250c495029f"
+ },
+ "tools": [
+  {
+   "name": "compile",
+   "title": "Compile Omega source",
+   "description": "Compile Omega (.om) source with the pinned seeded compiler omc (omega-mv@e5b32567). Returns ok, the binary's size and sha256, or the compile error {line, code, meaning, fix}.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "source": {
+      "type": "string",
+      "description": "Omega (.om) source text of one unit"
+     }
+    },
+    "required": [
+     "source"
+    ],
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "run",
+   "title": "Compile and run Omega source",
+   "description": "Compile Omega source and run the program in an isolated sandbox (no network, no host filesystem, empty environment, CPU/memory/file/process limits). Returns the compile result, capped stdout/stderr and the interpreted exit status (normal, trap N with its meaning, or the limit that stopped it).",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "source": {
+      "type": "string",
+      "description": "Omega (.om) source text of one unit"
+     },
+     "stdin": {
+      "type": "string",
+      "description": "bytes given to the program on stdin (default empty)"
+     },
+     "timeout_ms": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 30000,
+      "description": "wall-clock limit in milliseconds (default 5000)"
+     }
+    },
+    "required": [
+     "source"
+    ],
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "explain_error",
+   "title": "Explain an Omega error or trap",
+   "description": "Explain a compile error code 1..30, an `omc: line N: error K` line, `trap T`, or a program exit status 101..114 (trap). Returns meaning, cause, fix, a minimal example and source citations.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "query": {
+      "type": [
+       "string",
+       "integer"
+      ],
+      "description": "an error code 1..30, an `omc: line N: error K` line, `trap T` (1..14) or an exit status 101..114; a string of 1..200 bytes or a nonnegative integer"
+     }
+    },
+    "required": [
+     "query"
+    ],
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "lookup",
+   "title": "Look up an Omega word or topic",
+   "description": "Look up any Omega keyword (all 177 entries of the compiler's keyword table) or a topic (requires, ensures, invariant, result, om2, exit_status, packed_list, paths, host_words, compile_errors, traps, contracts): form, arity, types, result, example and citations. A query that is not an exact keyword or topic searches names and summaries (at most 20 results).",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "query": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "exact keyword or topic, or a case-insensitive substring to search for"
+     }
+    },
+    "required": [
+     "query"
+    ],
+    "additionalProperties": false
+   }
+  }
+ ],
+ "errors": {
+  "1": {
+   "meaning": "stdin read failed",
+   "cause": "The compiler could not read its input (stdin is not readable, e.g. a directory).",
+   "fix": "Give omc a readable source file on stdin.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:12005",
+     "quote": "fail 1"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    }
+   ],
+   "example": null,
+   "reproduce": "omc < /   (stdin is a directory: the read fails, exit 1, stderr 'omc: line 1: error 1')"
+  },
+  "2": {
+   "meaning": "stdout write failed",
+   "cause": "The compiler could not write the binary (stdout is full or closed).",
+   "fix": "Write omc's stdout to a regular file with space.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:8166",
+     "quote": "fail 2"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    }
+   ],
+   "example": null,
+   "reproduce": "omc < ok.om > /dev/full   (the write fails with ENOSPC, exit 2)"
+  },
+  "3": {
+   "meaning": "unknown name or field",
+   "cause": "A word is used as a name but nothing of that name is in scope (or a struct has no such field).",
+   "fix": "Declare the name first, or fix its spelling.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:2104",
+     "quote": "fail 3"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:514",
+     "quote": "An unknown field is error 3."
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e03"
+  },
+  "4": {
+   "meaning": "line ends early",
+   "cause": "The line stops before a required operand or word.",
+   "fix": "Supply the missing operand (see the word's form).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:2743",
+     "quote": "fail 4"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:503",
+     "quote": "error 4 if the line ends before `end`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e04"
+  },
+  "5": {
+   "meaning": "extra words",
+   "cause": "Words remain on the line after a complete statement.",
+   "fix": "Remove the extra words or split the line.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:2785",
+     "quote": "fail 5"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:938",
+     "quote": "trailing words (error 5)"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e05"
+  },
+  "6": {
+   "meaning": "malformed number",
+   "cause": "A number has a non-digit character, more than 20 digits or a bad hex form.",
+   "fix": "Write a plain decimal (or OM-2 lowercase 0x hex) number.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1504",
+     "quote": "fail 6"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:445",
+     "quote": "more than 20 digits, or a character that is not a digit, is error 6"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e06"
+  },
+  "7": {
+   "meaning": "type mismatch",
+   "cause": "Two values of an operation, an assignment or a call argument have different types; there are no implicit conversions.",
+   "fix": "Convert explicitly with a type word, e.g. `add int a int b`.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:2077",
+     "quote": "fail 7"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:440-441",
+     "quote": "or the line is refused (error 7)."
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e07"
+  },
+  "8": {
+   "meaning": "out of range",
+   "cause": "A literal is outside its type, or a count/bound/trap code is out of its range.",
+   "fix": "Use a value inside the type's range or a wider type.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1815",
+     "quote": "fail 8"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:443-444",
+     "quote": "it must be a"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e08"
+  },
+  "9": {
+   "meaning": "word not allowed here",
+   "cause": "The word is not permitted in this position: break/continue outside a loop, new outside the outermost block, free/own/global/text as a statement, a seventh parameter slot, recursion in function mode.",
+   "fix": "Move the statement to a valid position or use the documented alternative.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:2686",
+     "quote": "fail 9"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:61",
+     "quote": "outside a loop: error 9."
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e09"
+  },
+  "10": {
+   "meaning": "duplicate name",
+   "cause": "A name already in scope, a function or a struct is declared again.",
+   "fix": "Choose a new name.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:2369",
+     "quote": "fail 10"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:424-425",
+     "quote": "A new name"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e10"
+  },
+  "11": {
+   "meaning": "ambiguous bare number",
+   "cause": "A number appears where no context gives it a type.",
+   "fix": "Prefix it with a type word, e.g. `x = int 5`.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:2609",
+     "quote": "fail 11"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:442",
+     "quote": "A bare number takes the type the place needs."
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e11"
+  },
+  "12": {
+   "meaning": "register pool exhausted",
+   "cause": "More than 16 values are live at once in a function.",
+   "fix": "Split the function or reuse names so fewer values are live.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:2410",
+     "quote": "fail 12"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:492",
+     "quote": "A function that needs more than the 16 registers it hands out is error 12."
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e12"
+  },
+  "13": {
+   "meaning": "name too long",
+   "cause": "A variable, text, global or constant name has more than 8 characters (functions allow 63).",
+   "fix": "Shorten the name to at most 8 characters.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:2089",
+     "quote": "fail 13"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:423",
+     "quote": "Function names may have up to 63 characters; other names up to 8 (error 13)."
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e13"
+  },
+  "14": {
+   "meaning": "capacity exceeded",
+   "cause": "A compiler table is full: too many names/globals, struct fields or cells, break sites, fresh arrays, unroll growth.",
+   "fix": "Reduce the count below the documented capacity.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:524",
+     "quote": "fail 14"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:490",
+     "quote": "Input over a capacity is refused with error 14, never overrun"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e14"
+  },
+  "15": {
+   "meaning": "missing end",
+   "cause": "The input ends inside an open block.",
+   "fix": "Add the missing `end`.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:6671",
+     "quote": "fail 15"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:944",
+     "quote": "Missing function `end` is error 15."
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e15"
+  },
+  "16": {
+   "meaning": "syntax error or unknown word",
+   "cause": "A line does not start with a known statement form, or a type/length position holds something else.",
+   "fix": "Check the word's spelling and form with lookup.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:746",
+     "quote": "fail 16"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:453",
+     "quote": "a pool written without its length is refused (error 16)"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e16"
+  },
+  "17": {
+   "meaning": "line after a path end",
+   "cause": "A line follows ret, break, continue, trap or exit in the same block and can never run.",
+   "fix": "Delete the unreachable line or move it before the path end.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:6405",
+     "quote": "fail 17"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:61-62",
+     "quote": "(a later line in the same block is error 17)"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e17"
+  },
+  "18": {
+   "meaning": "missing ret",
+   "cause": "A function with a result type can reach its end without a ret.",
+   "fix": "Add a ret on every path (or make the function void).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:7609",
+     "quote": "fail 18"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:421",
+     "quote": "A function with a return type whose `end` can be reached is error 18."
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e18"
+  },
+  "19": {
+   "meaning": "global passed or same array twice",
+   "cause": "A global is passed as an argument, or one array is passed twice in a call.",
+   "fix": "Copy the global into a local array (new) or pass distinct arrays.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:3772",
+     "quote": "fail 19"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:467-468",
+     "quote": "A global is"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e19"
+  },
+  "20": {
+   "meaning": "write to a read-only array",
+   "cause": "put, read or an edit argument targets a view or a text.",
+   "fix": "Write into a local, global or edit array instead.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:3777",
+     "quote": "fail 20"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:465",
+     "quote": "A view is read-only; `put`, `read` into it, or passing it as edit is error 20."
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e20"
+  },
+  "21": {
+   "meaning": "constant index out of range",
+   "cause": "A literal index is outside the array or field.",
+   "fix": "Use an index below the length.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:3687",
+     "quote": "fail 21"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:472",
+     "quote": "A number index must be inside A when om4 reads it (error 21)"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e21"
+  },
+  "22": {
+   "meaning": "bad text literal",
+   "cause": "A text literal has an unknown escape or no closing quote.",
+   "fix": "Use only \\n \\t \\\\ \\\" escapes and close the quote.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:627",
+     "quote": "fail 22"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:458-459",
+     "quote": "any other escape, or a quote missing its end,"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e22"
+  },
+  "23": {
+   "meaning": "size capacity",
+   "cause": "An array is over 16777216 elements, globals over 1 GiB or local arrays over 4 MiB.",
+   "fix": "Use a smaller array.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:2696",
+     "quote": "fail 23"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:461",
+     "quote": "at most 4 MiB of local arrays (error 23)"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/gate15.sh:85",
+     "quote": "codes 3..23; 1 and 2 are compiler I/O"
+    }
+   ],
+   "example": "e23"
+  },
+  "24": {
+   "meaning": "branch displacement out of range",
+   "cause": "A conditional branch target is misaligned or more than 2^18 words away.",
+   "fix": "Split very large functions or programs; this is reached only by programs with about 1 MiB of code between a branch and its target.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:2468",
+     "quote": "fail 24"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:2463-2464",
+     "quote": "else error 24 before any artifact is accepted"
+    }
+   ],
+   "example": null,
+   "example_note": "No minimal example: it needs about 1 MiB of machine code between a branch and its target."
+  },
+  "27": {
+   "meaning": "fresh element read before write (OM-2 init)",
+   "cause": "A fresh parameter element is read before it is definitely written, or the array is passed on.",
+   "fix": "Write every element before reading it (put with a number index).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:9622",
+     "quote": "fail 27"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:720",
+     "quote": "else error 27, `obligation=init`, on the get line"
+    }
+   ],
+   "example": "e27"
+  },
+  "28": {
+   "meaning": "abstract constructor violation (OM-2 ctor)",
+   "cause": "seal outside the NAMEmk constructor, or a bad holds predicate.",
+   "fix": "Seal only inside the function named NAME followed by mk.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:9187",
+     "quote": "fail 28"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:729-730",
+     "quote": "a `seal` anywhere else is"
+    }
+   ],
+   "example": "e28"
+  },
+  "29": {
+   "meaning": "layout violation (OM-2 layout)",
+   "cause": "Layout SIZE outside 1..4096, a field past SIZE or overlapping an earlier field.",
+   "fix": "Keep every field inside SIZE and non-overlapping.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:9747",
+     "quote": "fail 29"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:706",
+     "quote": "SIZE outside 1..4096 or a `layout` after the first `fn` is error 29"
+    }
+   ],
+   "example": "e29"
+  },
+  "30": {
+   "meaning": "contract syntax (OM-2)",
+   "cause": "Misplaced requires/ensures/invariant, result outside a value postcondition, or a forbidden predicate operation.",
+   "fix": "Put contracts first in the function or loop body and use only pure integer/bool operations.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:3894",
+     "quote": "fail 30"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:1177-1178",
+     "quote": "Compiler error **30** means misplaced"
+    }
+   ],
+   "example": "e30"
+  }
+ },
+ "traps": {
+  "1": {
+   "name": "OVERFLOW",
+   "meaning": "checked signed arithmetic out of range",
+   "cause": "Signed add/sub/mul/neg/div/shl produced a value outside the type.",
+   "fix": "Use a wider type, check the range first, or use an unsigned type if wrapping is intended.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:433",
+     "quote": "Signed add, sub, mul, neg, div and shl trap 1"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:406",
+     "quote": "A trap in program mode ends the program with exit status 100 + the trap code"
+    }
+   ],
+   "example": "t01"
+  },
+  "2": {
+   "name": "DIV0",
+   "meaning": "division by zero",
+   "cause": "div or rem with a divisor of 0.",
+   "fix": "Check the divisor before dividing.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:435",
+     "quote": "div and rem trap 2 when the divisor is 0."
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:406",
+     "quote": "A trap in program mode ends the program with exit status 100 + the trap code"
+    }
+   ],
+   "example": "t02"
+  },
+  "3": {
+   "name": "BOUNDS",
+   "meaning": "index or slice out of bounds",
+   "cause": "A run-time index is not below the length, or a host/read/write slice is outside its array.",
+   "fix": "Check the index against len A, or fix off/n.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:473",
+     "quote": "traps 3 when it is not below the length"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:406",
+     "quote": "A trap in program mode ends the program with exit status 100 + the trap code"
+    }
+   ],
+   "example": "t03"
+  },
+  "4": {
+   "name": "LOOP_BOUND",
+   "meaning": "loop exceeded its bound",
+   "cause": "A while ran more than its bound (default 1000000) iterations.",
+   "fix": "Fix the loop condition or raise bound N (at most 999999).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:58",
+     "quote": "past N iterations: trap 4"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:406",
+     "quote": "A trap in program mode ends the program with exit status 100 + the trap code"
+    }
+   ],
+   "example": "t04"
+  },
+  "5": {
+   "name": "CAST",
+   "meaning": "checked conversion out of range",
+   "cause": "A conversion `T v` got a value outside T.",
+   "fix": "Check the range before converting, or convert to a wider type.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:406",
+     "quote": "A trap in program mode ends the program with exit status 100 + the trap code"
+    }
+   ],
+   "example": "t05"
+  },
+  "6": {
+   "name": "OOM",
+   "meaning": "stack pool exhausted",
+   "cause": "A call or local array would go below the fixed 8 MiB stack (deep recursion).",
+   "fix": "Bound the recursion or use a loop / smaller local arrays.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:426-427",
+     "quote": "a call or a local array that would go below it traps"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:406",
+     "quote": "A trap in program mode ends the program with exit status 100 + the trap code"
+    }
+   ],
+   "example": "t06"
+  },
+  "7": {
+   "name": "SHIFT",
+   "meaning": "shift or rotate amount out of range",
+   "cause": "A shift or rotate amount is outside 0..width-1.",
+   "fix": "Check the amount against the width.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:437",
+     "quote": "A shift amount outside 0 .. width - 1 traps 7"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:406",
+     "quote": "A trap in program mode ends the program with exit status 100 + the trap code"
+    }
+   ],
+   "example": "t07"
+  },
+  "8": {
+   "name": "RUNTIME",
+   "meaning": "runtime invariant broken",
+   "cause": "A runtime invariant (double release, bad handle) failed; checked native code raises it only through `trap 8`.",
+   "fix": "Find the explicit trap 8 in the program.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 src/compiler/osc_ir.h:176",
+     "quote": "OSC_TRAP_RUNTIME = 8"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:406",
+     "quote": "A trap in program mode ends the program with exit status 100 + the trap code"
+    }
+   ],
+   "example": "t08"
+  },
+  "9": {
+   "name": "REQUIRES",
+   "meaning": "precondition failed",
+   "cause": "A requires clause was false on entry.",
+   "fix": "Call the function only with arguments that satisfy its requires clauses.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:1173",
+     "quote": "False `requires` uses existing trap **9** (program exit **109**)"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:406",
+     "quote": "A trap in program mode ends the program with exit status 100 + the trap code"
+    }
+   ],
+   "example": "contract_fail"
+  },
+  "10": {
+   "name": "ENSURES",
+   "meaning": "postcondition or invariant failed",
+   "cause": "An ensures, invariant or holds check was false.",
+   "fix": "Fix the function body or loop so the stated property holds.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:1174",
+     "quote": "`ensures` or `invariant` uses existing trap **10** (exit **110**)."
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:406",
+     "quote": "A trap in program mode ends the program with exit status 100 + the trap code"
+    }
+   ],
+   "example": "t10"
+  },
+  "11": {
+   "name": "ARENA_FULL",
+   "meaning": "arena allocation over capacity",
+   "cause": "An OSC arena allocation exceeded the arena's capacity; native program mode raises it only through `trap 11`.",
+   "fix": "Find the explicit trap 11 in the program.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 src/compiler/osc_ir.h:183",
+     "quote": "OSC_TRAP_ARENA_FULL = 11"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:406",
+     "quote": "A trap in program mode ends the program with exit status 100 + the trap code"
+    }
+   ],
+   "example": "t11"
+  },
+  "12": {
+   "name": "STALE",
+   "meaning": "stale versioned handle",
+   "cause": "A handle whose generation no longer matches its slot; native program mode raises it only through `trap 12`.",
+   "fix": "Find the explicit trap 12 in the program.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 src/compiler/osc_ir.h:185",
+     "quote": "OSC_TRAP_STALE = 12"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:406",
+     "quote": "A trap in program mode ends the program with exit status 100 + the trap code"
+    }
+   ],
+   "example": "t12"
+  },
+  "13": {
+   "name": "POOL_FULL",
+   "meaning": "pool allocation with every slot live",
+   "cause": "An OSC pool allocation found no free slot; native program mode raises it only through `trap 13`.",
+   "fix": "Find the explicit trap 13 in the program.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 src/compiler/osc_ir.h:186",
+     "quote": "OSC_TRAP_POOL_FULL = 13"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:406",
+     "quote": "A trap in program mode ends the program with exit status 100 + the trap code"
+    }
+   ],
+   "example": "t13"
+  },
+  "14": {
+   "name": "RETIRED",
+   "meaning": "pool slot retired at the maximum generation",
+   "cause": "An OSC pool allocation found only retired slots; native program mode raises it only through `trap 14`.",
+   "fix": "Find the explicit trap 14 in the program.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 src/compiler/osc_ir.h:187",
+     "quote": "OSC_TRAP_RETIRED = 14"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:406",
+     "quote": "A trap in program mode ends the program with exit status 100 + the trap code"
+    }
+   ],
+   "example": "t14"
+  }
+ },
+ "words": {
+  "fopen": {
+   "table": "kw",
+   "id": 110,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "fopen A off n flags mode",
+   "arity": 5,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "flags: int",
+    "mode: int"
+   ],
+   "result": "long",
+   "summary": "Open a length-delimited path relative to the current directory; return the descriptor. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1204-1205",
+     "quote": "ret 110"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:790",
+     "quote": "`fopen A off n flags mode`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "fclose": {
+   "table": "kw",
+   "id": 100,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "fclose fd",
+   "arity": 1,
+   "types": [
+    "fd: int"
+   ],
+   "result": "long",
+   "summary": "Close a descriptor. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1174-1175",
+     "quote": "ret 100"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:791",
+     "quote": "`fclose fd`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "fsync": {
+   "table": "kw",
+   "id": 101,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "fsync fd",
+   "arity": 1,
+   "types": [
+    "fd: int"
+   ],
+   "result": "long",
+   "summary": "Sync file data and metadata. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1177-1178",
+     "quote": "ret 101"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:792",
+     "quote": "`fsync fd`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "fdsync": {
+   "table": "kw",
+   "id": 156,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "fdsync fd",
+   "arity": 1,
+   "types": [
+    "fd: int"
+   ],
+   "result": "long",
+   "summary": "Sync file data only (fdatasync). Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:850-851",
+     "quote": "ret 156"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:793",
+     "quote": "`fdsync fd`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "memfd": {
+   "table": "kw",
+   "id": 157,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "memfd A off n flags",
+   "arity": 4,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "flags: int"
+   ],
+   "result": "long",
+   "summary": "Create an anonymous in-memory file (memfd_create); return its descriptor. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:853-854",
+     "quote": "ret 157"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:794",
+     "quote": "`memfd A off n flags`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "fchmod": {
+   "table": "kw",
+   "id": 102,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "fchmod fd mode",
+   "arity": 2,
+   "types": [
+    "fd: int",
+    "mode: int"
+   ],
+   "result": "long",
+   "summary": "Set permissions on an open descriptor. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1180-1181",
+     "quote": "ret 102"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:795",
+     "quote": "`fchmod fd mode`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "chmod": {
+   "table": "kw",
+   "id": 143,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "chmod A off n mode",
+   "arity": 4,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "mode: int"
+   ],
+   "result": "long",
+   "summary": "Set permissions on a checked path (fchmodat, flags 0). Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:811-812",
+     "quote": "ret 143"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:796",
+     "quote": "`chmod A off n mode`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "chown": {
+   "table": "kw",
+   "id": 151,
+   "category": "host-dir",
+   "profile": "OM-1",
+   "form": "chown A off n uid gid",
+   "arity": 5,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "uid: int",
+    "gid: int"
+   ],
+   "result": "long",
+   "summary": "Set ownership on a checked path (fchownat, flags 0). Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:835-836",
+     "quote": "ret 151"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:797",
+     "quote": "`chown A off n uid gid`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "dirs"
+  },
+  "faccess": {
+   "table": "kw",
+   "id": 144,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "faccess A off n mode",
+   "arity": 4,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "mode: int"
+   ],
+   "result": "long",
+   "summary": "Check access to a checked path (faccessat): mode 0/1/2/4. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:814-815",
+     "quote": "ret 144"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:798",
+     "quote": "`faccess A off n mode`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "getuid": {
+   "table": "kw",
+   "id": 145,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "getuid",
+   "arity": 0,
+   "types": [],
+   "result": "long",
+   "summary": "Real user id of the process. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:817-818",
+     "quote": "ret 145"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:799",
+     "quote": "`getuid`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "dirs"
+  },
+  "geteuid": {
+   "table": "kw",
+   "id": 146,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "geteuid",
+   "arity": 0,
+   "types": [],
+   "result": "long",
+   "summary": "Effective user id of the process. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:820-821",
+     "quote": "ret 146"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:799",
+     "quote": "`geteuid`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "dirs"
+  },
+  "getgid": {
+   "table": "kw",
+   "id": 147,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "getgid",
+   "arity": 0,
+   "types": [],
+   "result": "long",
+   "summary": "Real group id of the process. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:823-824",
+     "quote": "ret 147"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:799",
+     "quote": "`getgid`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "dirs"
+  },
+  "getegid": {
+   "table": "kw",
+   "id": 148,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "getegid",
+   "arity": 0,
+   "types": [],
+   "result": "long",
+   "summary": "Effective group id of the process. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:826-827",
+     "quote": "ret 148"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:799",
+     "quote": "`getegid`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "dirs"
+  },
+  "fchdir": {
+   "table": "kw",
+   "id": 153,
+   "category": "host-dir",
+   "profile": "OM-1",
+   "form": "fchdir fd",
+   "arity": 1,
+   "types": [
+    "fd: int"
+   ],
+   "result": "long",
+   "summary": "Change the working directory to an open directory descriptor. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:841-842",
+     "quote": "ret 153"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:800",
+     "quote": "`fchdir fd`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "dirs"
+  },
+  "getppid": {
+   "table": "kw",
+   "id": 154,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "getppid",
+   "arity": 0,
+   "types": [],
+   "result": "long",
+   "summary": "Parent process id. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:844-845",
+     "quote": "ret 154"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:801",
+     "quote": "`getppid`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "procs"
+  },
+  "setsid": {
+   "table": "kw",
+   "id": 158,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "setsid",
+   "arity": 0,
+   "types": [],
+   "result": "long",
+   "summary": "Create a session and become its leader. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:856-857",
+     "quote": "ret 158"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:802",
+     "quote": "`setsid`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "procs"
+  },
+  "getpgid": {
+   "table": "kw",
+   "id": 159,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "getpgid pid",
+   "arity": 1,
+   "types": [
+    "pid: int"
+   ],
+   "result": "long",
+   "summary": "Process group id of pid (0 = self). Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:859-860",
+     "quote": "ret 159"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:803",
+     "quote": "`getpgid pid`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "procs"
+  },
+  "getsid": {
+   "table": "kw",
+   "id": 163,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "getsid pid",
+   "arity": 1,
+   "types": [
+    "pid: int"
+   ],
+   "result": "long",
+   "summary": "Session id of pid (0 = self). Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:871-872",
+     "quote": "ret 163"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:804",
+     "quote": "`getsid pid`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "procs"
+  },
+  "syncfs": {
+   "table": "kw",
+   "id": 164,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "syncfs fd",
+   "arity": 1,
+   "types": [
+    "fd: int"
+   ],
+   "result": "long",
+   "summary": "Sync the filesystem containing an open descriptor. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:874-875",
+     "quote": "ret 164"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:805",
+     "quote": "`syncfs fd`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "shutdown": {
+   "table": "kw",
+   "id": 165,
+   "category": "host-net",
+   "profile": "OM-1",
+   "form": "shutdown fd how",
+   "arity": 2,
+   "types": [
+    "fd: int",
+    "how: int"
+   ],
+   "result": "long",
+   "summary": "Shut down part of a connected socket (how 0 read, 1 write, 2 both). Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:877-878",
+     "quote": "ret 165"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:806",
+     "quote": "`shutdown fd how`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "sockets"
+  },
+  "flock": {
+   "table": "kw",
+   "id": 197,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "flock fd op",
+   "arity": 2,
+   "types": [
+    "fd: int",
+    "op: int"
+   ],
+   "result": "long",
+   "summary": "Advisory whole-file lock (Linux flock); op 1 shared, 2 exclusive, 8 unlock, |4 nonblocking. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:916-917",
+     "quote": "ret 197"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:807",
+     "quote": "`flock fd op`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "setpgid": {
+   "table": "kw",
+   "id": 160,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "setpgid pid pgid",
+   "arity": 2,
+   "types": [
+    "pid: int",
+    "pgid: int"
+   ],
+   "result": "long",
+   "summary": "Set a process's group (0 = self/own pid). Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:862-863",
+     "quote": "ret 160"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:808",
+     "quote": "`setpgid pid pgid`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "procs"
+  },
+  "umask": {
+   "table": "kw",
+   "id": 155,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "umask mask",
+   "arity": 1,
+   "types": [
+    "mask: int"
+   ],
+   "result": "long",
+   "summary": "Set the file-mode mask; return the previous mask. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:847-848",
+     "quote": "ret 155"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:809",
+     "quote": "`umask mask`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "fseek": {
+   "table": "kw",
+   "id": 103,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "fseek fd offset whence",
+   "arity": 3,
+   "types": [
+    "fd: int",
+    "offset: long",
+    "whence: int"
+   ],
+   "result": "long",
+   "summary": "Seek; return the resulting file offset. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1183-1184",
+     "quote": "ret 103"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:810",
+     "quote": "`fseek fd offset whence`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "ftrunc": {
+   "table": "kw",
+   "id": 139,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "ftrunc fd length",
+   "arity": 2,
+   "types": [
+    "fd: int",
+    "length: long"
+   ],
+   "result": "long",
+   "summary": "Set an open descriptor's length (ftruncate). Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:799-800",
+     "quote": "ret 139"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:811",
+     "quote": "`ftrunc fd length`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "truncate": {
+   "table": "kw",
+   "id": 150,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "truncate A off n length",
+   "arity": 4,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "length: long"
+   ],
+   "result": "long",
+   "summary": "Set a checked path's length (truncate). Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:832-833",
+     "quote": "ret 150"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:812",
+     "quote": "`truncate A off n length`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "unlink": {
+   "table": "kw",
+   "id": 111,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "unlink A off n",
+   "arity": 3,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong"
+   ],
+   "result": "long",
+   "summary": "Remove the named file. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1207-1208",
+     "quote": "ret 111"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:813",
+     "quote": "`unlink A off n`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "makedir": {
+   "table": "kw",
+   "id": 112,
+   "category": "host-dir",
+   "profile": "OM-1",
+   "form": "makedir A off n mode",
+   "arity": 4,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "mode: int"
+   ],
+   "result": "long",
+   "summary": "Create a directory. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1210-1211",
+     "quote": "ret 112"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:814",
+     "quote": "`makedir A off n mode`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "dirs"
+  },
+  "rmdir": {
+   "table": "kw",
+   "id": 126,
+   "category": "host-dir",
+   "profile": "OM-1",
+   "form": "rmdir A off n",
+   "arity": 3,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong"
+   ],
+   "result": "long",
+   "summary": "Remove an empty directory. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1129-1130",
+     "quote": "ret 126"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:815",
+     "quote": "`rmdir A off n`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "dirs"
+  },
+  "cwd": {
+   "table": "kw",
+   "id": 132,
+   "category": "host-dir",
+   "profile": "OM-1",
+   "form": "cwd A off capacity",
+   "arity": 3,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "capacity: ulong"
+   ],
+   "result": "long",
+   "summary": "Write the current directory into writable bytes; the count includes the trailing zero. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:766-767",
+     "quote": "ret 132"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:816",
+     "quote": "`cwd A off capacity`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "dirs"
+  },
+  "chdir": {
+   "table": "kw",
+   "id": 138,
+   "category": "host-dir",
+   "profile": "OM-1",
+   "form": "chdir A off n",
+   "arity": 3,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong"
+   ],
+   "result": "long",
+   "summary": "Change the working directory to a checked, nonempty path. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:796-797",
+     "quote": "ret 138"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:817",
+     "quote": "`chdir A off n`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "dirs"
+  },
+  "readlnk": {
+   "table": "kw",
+   "id": 133,
+   "category": "host-dir",
+   "profile": "OM-1",
+   "form": "readlnk PATH off n OUT off capacity",
+   "arity": 6,
+   "types": [
+    "PATH: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "OUT: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "capacity: ulong"
+   ],
+   "result": "long",
+   "summary": "Read a symbolic link into writable output bytes; no zero byte is appended. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:775-776",
+     "quote": "ret 133"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:818",
+     "quote": "`readlnk PATH off n OUT off capacity`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "dirs"
+  },
+  "getdnts": {
+   "table": "kw",
+   "id": 113,
+   "category": "host-dir",
+   "profile": "OM-1",
+   "form": "getdnts fd A off n",
+   "arity": 4,
+   "types": [
+    "fd: int",
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong"
+   ],
+   "result": "long",
+   "summary": "Write raw Linux getdents64 records; return bytes written. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1144-1145",
+     "quote": "ret 113"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:819",
+     "quote": "`getdnts fd A off n`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "dirs"
+  },
+  "fstat": {
+   "table": "kw",
+   "id": 117,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "fstat fd A off n",
+   "arity": 4,
+   "types": [
+    "fd: int",
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong"
+   ],
+   "result": "long",
+   "summary": "Write the 128-byte Linux ARM64 stat structure of an open descriptor. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1156-1157",
+     "quote": "ret 117"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:820",
+     "quote": "`fstat fd A off n`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "stat": {
+   "table": "kw",
+   "id": 140,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "stat A off n B off capacity",
+   "arity": 6,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "B: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "capacity: ulong"
+   ],
+   "result": "long",
+   "summary": "Metadata for a checked path (newfstatat) into a 128-byte ARM64 stat structure. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:802-803",
+     "quote": "ret 140"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:821",
+     "quote": "`stat A off n B off capacity`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "lstat": {
+   "table": "kw",
+   "id": 149,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "lstat A off n B off capacity",
+   "arity": 6,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "B: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "capacity: ulong"
+   ],
+   "result": "long",
+   "summary": "As stat, without following a final symbolic link. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:829-830",
+     "quote": "ret 149"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:822",
+     "quote": "`lstat A off n B off capacity`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "files"
+  },
+  "renames": {
+   "table": "kw",
+   "id": 125,
+   "category": "host-dir",
+   "profile": "OM-1",
+   "form": "renames A off n flags",
+   "arity": 4,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "flags: int"
+   ],
+   "result": "long",
+   "summary": "Rename the two paths of a packed list (renameat2); flag 1 refuses replacement. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1126-1127",
+     "quote": "ret 125"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:823",
+     "quote": "`renames A off n flags`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "dirs"
+  },
+  "link": {
+   "table": "kw",
+   "id": 141,
+   "category": "host-dir",
+   "profile": "OM-1",
+   "form": "link A off n",
+   "arity": 3,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong"
+   ],
+   "result": "long",
+   "summary": "Create a hard link from a packed two-path list (old, new). Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:805-806",
+     "quote": "ret 141"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:824",
+     "quote": "`link A off n`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "dirs"
+  },
+  "symlnk": {
+   "table": "kw",
+   "id": 142,
+   "category": "host-dir",
+   "profile": "OM-1",
+   "form": "symlnk A off n",
+   "arity": 3,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong"
+   ],
+   "result": "long",
+   "summary": "Create a symbolic link from a packed two-path list (target text, link path). Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:808-809",
+     "quote": "ret 142"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:825",
+     "quote": "`symlnk A off n`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "dirs"
+  },
+  "monons": {
+   "table": "kw",
+   "id": 109,
+   "category": "host-time",
+   "profile": "OM-1",
+   "form": "monons",
+   "arity": 0,
+   "types": [],
+   "result": "long",
+   "summary": "Monotonic nanoseconds, for elapsed-time measurement. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1201-1202",
+     "quote": "ret 109"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:826",
+     "quote": "`monons`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "clock"
+  },
+  "realns": {
+   "table": "kw",
+   "id": 130,
+   "category": "host-time",
+   "profile": "OM-1",
+   "form": "realns",
+   "arity": 0,
+   "types": [],
+   "result": "long",
+   "summary": "Realtime nanoseconds since the Unix epoch. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1120-1121",
+     "quote": "ret 130"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:827",
+     "quote": "`realns`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "clock"
+  },
+  "sleepns": {
+   "table": "kw",
+   "id": 120,
+   "category": "host-time",
+   "profile": "OM-1",
+   "form": "sleepns interval",
+   "arity": 1,
+   "types": [
+    "interval: long"
+   ],
+   "result": "long",
+   "summary": "Sleep for nonnegative nanoseconds; a negative interval traps 3. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1165-1166",
+     "quote": "ret 120"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:828",
+     "quote": "`sleepns interval`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "clock"
+  },
+  "socknew": {
+   "table": "kw",
+   "id": 104,
+   "category": "host-net",
+   "profile": "OM-1",
+   "form": "socknew domain kind protocol",
+   "arity": 3,
+   "types": [
+    "domain: int",
+    "kind: int",
+    "protocol: int"
+   ],
+   "result": "long",
+   "summary": "Create a socket. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1186-1187",
+     "quote": "ret 104"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:829",
+     "quote": "`socknew domain kind protocol`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "sockets"
+  },
+  "bind": {
+   "table": "kw",
+   "id": 115,
+   "category": "host-net",
+   "profile": "OM-1",
+   "form": "bind fd A off n",
+   "arity": 4,
+   "types": [
+    "fd: int",
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong"
+   ],
+   "result": "long",
+   "summary": "Bind a socket to the address bytes of the slice. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1150-1151",
+     "quote": "ret 115"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:830",
+     "quote": "`bind fd A off n`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "sockets"
+  },
+  "connect": {
+   "table": "kw",
+   "id": 114,
+   "category": "host-net",
+   "profile": "OM-1",
+   "form": "connect fd A off n",
+   "arity": 4,
+   "types": [
+    "fd: int",
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong"
+   ],
+   "result": "long",
+   "summary": "Connect using the address bytes of the slice. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1147-1148",
+     "quote": "ret 114"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:831",
+     "quote": "`connect fd A off n`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "sockets"
+  },
+  "listen": {
+   "table": "kw",
+   "id": 105,
+   "category": "host-net",
+   "profile": "OM-1",
+   "form": "listen fd backlog",
+   "arity": 2,
+   "types": [
+    "fd: int",
+    "backlog: int"
+   ],
+   "result": "long",
+   "summary": "Listen for connections. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1189-1190",
+     "quote": "ret 105"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:832",
+     "quote": "`listen fd backlog`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "sockets"
+  },
+  "accept": {
+   "table": "kw",
+   "id": 106,
+   "category": "host-net",
+   "profile": "OM-1",
+   "form": "accept fd flags",
+   "arity": 2,
+   "types": [
+    "fd: int",
+    "flags: int"
+   ],
+   "result": "long",
+   "summary": "Accept a connection (accept4) without peer-address output; return the descriptor. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1192-1193",
+     "quote": "ret 106"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:833",
+     "quote": "`accept fd flags`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "sockets"
+  },
+  "sockname": {
+   "table": "kw",
+   "id": 131,
+   "category": "host-net",
+   "profile": "OM-1",
+   "form": "sockname fd A off n",
+   "arity": 4,
+   "types": [
+    "fd: int",
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong"
+   ],
+   "result": "long",
+   "summary": "Write the socket's address bytes; return the full address length. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1117-1118",
+     "quote": "ret 131"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:834",
+     "quote": "`sockname fd A off n`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "sockets"
+  },
+  "sockopt": {
+   "table": "kw",
+   "id": 134,
+   "category": "host-net",
+   "profile": "OM-1",
+   "form": "sockopt fd level option A off n",
+   "arity": 6,
+   "types": [
+    "fd: int",
+    "level: int",
+    "option: int",
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong"
+   ],
+   "result": "long",
+   "summary": "Set one allowlisted four-byte socket option. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:784-785",
+     "quote": "ret 134"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:835",
+     "quote": "`sockopt fd level option A off n`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "sockets"
+  },
+  "recv": {
+   "table": "kw",
+   "id": 118,
+   "category": "host-net",
+   "profile": "OM-1",
+   "form": "recv fd A off n flags",
+   "arity": 5,
+   "types": [
+    "fd: int",
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "flags: int"
+   ],
+   "result": "long",
+   "summary": "Receive into a writable slice. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1159-1160",
+     "quote": "ret 118"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:836",
+     "quote": "`recv fd A off n flags`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "sockets"
+  },
+  "send": {
+   "table": "kw",
+   "id": 119,
+   "category": "host-net",
+   "profile": "OM-1",
+   "form": "send fd A off n flags",
+   "arity": 5,
+   "types": [
+    "fd: int",
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "flags: int"
+   ],
+   "result": "long",
+   "summary": "Send a slice; MSG_NOSIGNAL is added so a closed peer returns an error. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1162-1163",
+     "quote": "ret 119"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:837",
+     "quote": "`send fd A off n flags`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "sockets"
+  },
+  "waitio": {
+   "table": "kw",
+   "id": 123,
+   "category": "host-net",
+   "profile": "OM-1",
+   "form": "waitio fd events interval",
+   "arity": 3,
+   "types": [
+    "fd: int",
+    "events: int",
+    "interval: long"
+   ],
+   "result": "long",
+   "summary": "Poll one descriptor: readiness bits, 0 on timeout, or negative errno. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1141-1142",
+     "quote": "ret 123"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:838",
+     "quote": "`waitio fd events interval`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "sockets"
+  },
+  "peercred": {
+   "table": "kw",
+   "id": 220,
+   "category": "host-net",
+   "profile": "OM-1",
+   "form": "peercred fd A off capacity",
+   "arity": 4,
+   "types": [
+    "fd: int",
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "capacity: ulong"
+   ],
+   "result": "long",
+   "summary": "Read SO_PEERCRED (pid, uid, gid as little-endian int32) into at least 12 writable bytes. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1246-1247",
+     "quote": "ret 220"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:839",
+     "quote": "`peercred fd A off capacity`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "sockets"
+  },
+  "pollfds": {
+   "table": "kw",
+   "id": 221,
+   "category": "host-net",
+   "profile": "OM-1",
+   "form": "pollfds A off n interval",
+   "arity": 4,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "interval: long"
+   ],
+   "result": "long",
+   "summary": "Poll packed eight-byte pollfd records in a writable slice. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1249-1250",
+     "quote": "ret 221"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:840",
+     "quote": "`pollfds A off n interval`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "sockets"
+  },
+  "sendmsg": {
+   "table": "kw",
+   "id": 222,
+   "category": "host-net",
+   "profile": "OM-1",
+   "form": "sendmsg fd A off n flags",
+   "arity": 5,
+   "types": [
+    "fd: int",
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "flags: int"
+   ],
+   "result": "long",
+   "summary": "Send one checked payload through a private msghdr, no ancillary data. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1252-1253",
+     "quote": "ret 222"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:841",
+     "quote": "`sendmsg fd A off n flags`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "sockets"
+  },
+  "fork": {
+   "table": "kw",
+   "id": 107,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "fork",
+   "arity": 0,
+   "types": [],
+   "result": "long",
+   "summary": "Copy the process: 0 in the child, the child pid in the parent. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1195-1196",
+     "quote": "ret 107"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:842",
+     "quote": "`fork`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "procs"
+  },
+  "getpid": {
+   "table": "kw",
+   "id": 129,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "getpid",
+   "arity": 0,
+   "types": [],
+   "result": "long",
+   "summary": "The current process id. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1138-1139",
+     "quote": "ret 129"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:843",
+     "quote": "`getpid`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "procs"
+  },
+  "killpid": {
+   "table": "kw",
+   "id": 127,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "killpid pid signal",
+   "arity": 2,
+   "types": [
+    "pid: int",
+    "signal: int"
+   ],
+   "result": "long",
+   "summary": "Send a signal; signal 0 checks existence and permission. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1132-1133",
+     "quote": "ret 127"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:844",
+     "quote": "`killpid pid signal`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "procs"
+  },
+  "waitpid": {
+   "table": "kw",
+   "id": 116,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "waitpid pid A off n options",
+   "arity": 5,
+   "types": [
+    "pid: int",
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "options: int"
+   ],
+   "result": "long",
+   "summary": "Wait with wait4; write a four-byte status; return the pid. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1153-1154",
+     "quote": "ret 116"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:845",
+     "quote": "`waitpid pid A off n options`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "procs"
+  },
+  "pipefds": {
+   "table": "kw",
+   "id": 128,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "pipefds A off n flags",
+   "arity": 4,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "flags: int"
+   ],
+   "result": "long",
+   "summary": "Create a pipe (pipe2); write two little-endian 32-bit descriptors. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1135-1136",
+     "quote": "ret 128"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:846",
+     "quote": "`pipefds A off n flags`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "procs"
+  },
+  "dupfd": {
+   "table": "kw",
+   "id": 108,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "dupfd fd target flags",
+   "arity": 3,
+   "types": [
+    "fd: int",
+    "target: int",
+    "flags: int"
+   ],
+   "result": "long",
+   "summary": "Duplicate onto a chosen descriptor (dup3). Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1198-1199",
+     "quote": "ret 108"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:847",
+     "quote": "`dupfd fd target flags`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "procs"
+  },
+  "execprog": {
+   "table": "kw",
+   "id": 124,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "execprog A off n",
+   "arity": 3,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong"
+   ],
+   "result": "long",
+   "summary": "Replace the process using a packed argument list and an empty environment; returns only on failure. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1123-1124",
+     "quote": "ret 124"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:848",
+     "quote": "`execprog A off n`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "procs"
+  },
+  "argcnt": {
+   "table": "kw",
+   "id": 121,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "argcnt",
+   "arity": 0,
+   "types": [],
+   "result": "long",
+   "summary": "Argument count, including the executable name. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1168-1169",
+     "quote": "ret 121"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:849",
+     "quote": "`argcnt`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "argsenv"
+  },
+  "argread": {
+   "table": "kw",
+   "id": 122,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "argread index A off capacity",
+   "arity": 4,
+   "types": [
+    "index: ulong",
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "capacity: ulong"
+   ],
+   "result": "long",
+   "summary": "Copy one argument's bytes without a terminator; return its length. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1171-1172",
+     "quote": "ret 122"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:850",
+     "quote": "`argread index A off capacity`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "argsenv"
+  },
+  "envcnt": {
+   "table": "kw",
+   "id": 136,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "envcnt",
+   "arity": 0,
+   "types": [],
+   "result": "long",
+   "summary": "Number of environment entries. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:790-791",
+     "quote": "ret 136"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:851",
+     "quote": "`envcnt`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "argsenv"
+  },
+  "envread": {
+   "table": "kw",
+   "id": 137,
+   "category": "host-process",
+   "profile": "OM-1",
+   "form": "envread index A off capacity",
+   "arity": 4,
+   "types": [
+    "index: ulong",
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "capacity: ulong"
+   ],
+   "result": "long",
+   "summary": "Copy one environment entry without its terminator; return its length. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:793-794",
+     "quote": "ret 137"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:852",
+     "quote": "`envread index A off capacity`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "argsenv"
+  },
+  "random": {
+   "table": "kw",
+   "id": 135,
+   "category": "host-time",
+   "profile": "OM-1",
+   "form": "random A off n flags",
+   "arity": 4,
+   "types": [
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "flags: int"
+   ],
+   "result": "long",
+   "summary": "Fill a writable byte slice from getrandom; return the bytes written. Program mode only; failure is minus the Linux errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:787-788",
+     "quote": "ret 135"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:853",
+     "quote": "`random A off n flags`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:780-786",
+     "quote": "Offsets, byte counts, capacities and argument indices are `ulong`"
+    }
+   ],
+   "example": "clock"
+  },
+  "pread": {
+   "table": "kw",
+   "id": 161,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "pread fd A off n pos",
+   "arity": 5,
+   "types": [
+    "fd: int",
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "pos: long"
+   ],
+   "result": "long",
+   "summary": "Read n bytes at file position pos into A[off..] without moving the descriptor offset; bytes read or -errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:865-866",
+     "quote": "ret 161"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:482-483",
+     "quote": "`pread fd A off n pos` / `pwrite fd A off n pos` (pos long)"
+    }
+   ],
+   "example": "files",
+   "notes": "At the pin (omega-mv e5b32567) omc checks writability the wrong way round for these two words: pwrite refuses a text or view source with error 20 and pread accepts a text destination (the kernel then returns -14 EFAULT). Pass a global or new array to pwrite; never pass a text to pread."
+  },
+  "pwrite": {
+   "table": "kw",
+   "id": 162,
+   "category": "host-file",
+   "profile": "OM-1",
+   "form": "pwrite fd A off n pos",
+   "arity": 5,
+   "types": [
+    "fd: int",
+    "A: uchar array (sized, unsized view/edit, or text when only read)",
+    "off: ulong",
+    "n: ulong",
+    "pos: long"
+   ],
+   "result": "long",
+   "summary": "Write A[off..off+n-1] at file position pos without moving the descriptor offset; bytes written or -errno.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:868-869",
+     "quote": "ret 162"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:482-483",
+     "quote": "`pread fd A off n pos` / `pwrite fd A off n pos` (pos long)"
+    }
+   ],
+   "example": "files",
+   "notes": "At the pin (omega-mv e5b32567) omc checks writability the wrong way round for these two words: pwrite refuses a text or view source with error 20 and pread accepts a text destination (the kernel then returns -14 EFAULT). Pass a global or new array to pwrite; never pass a text to pread."
+  },
+  "devctl": {
+   "table": "kw",
+   "id": 166,
+   "category": "device",
+   "profile": "OM-1",
+   "form": "devctl fd request A off n",
+   "arity": 5,
+   "types": [
+    "fd: int",
+    "request: uint literal (FIONREAD 21531 or an NVRM request)",
+    "A: writable uchar array",
+    "off: ulong",
+    "n: ulong"
+   ],
+   "result": "long",
+   "summary": "Checked Linux ioctl on an allowlisted request with its exact encoded size. Program mode only.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:880-881",
+     "quote": "ret 166"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/host/MAPPING.md:11",
+     "quote": "`devctl fd request A off n`"
+    }
+   ],
+   "example": "mapping"
+  },
+  "mapnew": {
+   "table": "kw",
+   "id": 167,
+   "category": "device",
+   "profile": "OM-1",
+   "form": "mapnew fd offset bytes access mode",
+   "arity": 5,
+   "types": [
+    "fd: int (-1 for anonymous)",
+    "offset: ulong",
+    "bytes: ulong",
+    "access: int literal 1 or 3",
+    "mode: int literal 1, 2, 33 or 34"
+   ],
+   "result": "long (handle)",
+   "summary": "Map a file or anonymous memory; a positive owned handle or negative errno. Program mode only.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:883-884",
+     "quote": "ret 167"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/host/MAPPING.md:12",
+     "quote": "`mapnew fd offset bytes access mode`"
+    }
+   ],
+   "example": "mapping"
+  },
+  "mapdrop": {
+   "table": "kw",
+   "id": 168,
+   "category": "device",
+   "profile": "OM-1",
+   "form": "mapdrop handle",
+   "arity": 1,
+   "types": [
+    "handle: long"
+   ],
+   "result": "long",
+   "summary": "Unmap an owned mapping; 0 or negative errno. Program mode only.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:886-887",
+     "quote": "ret 168"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/host/MAPPING.md:13",
+     "quote": "`mapdrop handle`"
+    }
+   ],
+   "example": "mapping"
+  },
+  "mapread": {
+   "table": "kw",
+   "id": 169,
+   "category": "device",
+   "profile": "OM-1",
+   "form": "mapread handle offset A off n",
+   "arity": 5,
+   "types": [
+    "handle: long",
+    "offset: ulong",
+    "A: writable uchar array",
+    "off: ulong",
+    "n: ulong"
+   ],
+   "result": "long",
+   "summary": "Copy n bytes from the mapping into A; return n. Program mode only.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:889-890",
+     "quote": "ret 169"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/host/MAPPING.md:14",
+     "quote": "`mapread handle offset A off n`"
+    }
+   ],
+   "example": "mapping"
+  },
+  "mapwrite": {
+   "table": "kw",
+   "id": 170,
+   "category": "device",
+   "profile": "OM-1",
+   "form": "mapwrite handle offset A off n",
+   "arity": 5,
+   "types": [
+    "handle: long",
+    "offset: ulong",
+    "A: uchar array (text and views accepted)",
+    "off: ulong",
+    "n: ulong"
+   ],
+   "result": "long",
+   "summary": "Copy n bytes from A into a writable mapping; return n. Program mode only.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:892-893",
+     "quote": "ret 170"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/host/MAPPING.md:15",
+     "quote": "`mapwrite handle offset A off n`"
+    }
+   ],
+   "example": "mapping"
+  },
+  "devcall": {
+   "table": "kw",
+   "id": 171,
+   "category": "device",
+   "profile": "OM-1",
+   "form": "devcall fd request H hoff 32 P poff n",
+   "arity": 8,
+   "types": [
+    "fd: int",
+    "request: uint literal (RM_ALLOC or RM_CONTROL)",
+    "H: writable uchar array",
+    "hoff: ulong",
+    "32: header length",
+    "P: writable uchar array",
+    "poff: ulong",
+    "n: ulong (at most 16383)"
+   ],
+   "result": "long",
+   "summary": "Checked NVIDIA RM_ALLOC / RM_CONTROL call with a private header and a bounded parameter span. Program mode only.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:895-896",
+     "quote": "ret 171"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/host/MAPPING.md:16",
+     "quote": "`devcall fd request H hoff 32 P poff n`"
+    }
+   ],
+   "example": "mapping"
+  },
+  "uvmctl": {
+   "table": "kw",
+   "id": 172,
+   "category": "device",
+   "profile": "OM-1",
+   "form": "uvmctl fd command A off n",
+   "arity": 5,
+   "types": [
+    "fd: int",
+    "command: uint literal from the UVM allowlist",
+    "A: writable uchar array",
+    "off: ulong",
+    "n: ulong (the request's exact payload length)"
+   ],
+   "result": "long",
+   "summary": "Allowlisted Linux UVM ioctl with its exact writable payload. Program mode only.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:898-899",
+     "quote": "ret 172"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/host/MAPPING.md:17",
+     "quote": "`uvmctl fd command A off n`"
+    }
+   ],
+   "example": "mapping"
+  },
+  "mapaddr": {
+   "table": "kw",
+   "id": 173,
+   "category": "device",
+   "profile": "OM-1",
+   "form": "mapaddr handle",
+   "arity": 1,
+   "types": [
+    "handle: long"
+   ],
+   "result": "ulong",
+   "summary": "Base address of an owned live mapping or reservation (no access through it). Program mode only.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:901-902",
+     "quote": "ret 173"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/host/MAPPING.md:18",
+     "quote": "`mapaddr handle`"
+    }
+   ],
+   "example": "mapping"
+  },
+  "mapget": {
+   "table": "kw",
+   "id": 174,
+   "category": "device",
+   "profile": "OM-1",
+   "form": "mapget handle offset width",
+   "arity": 3,
+   "types": [
+    "handle: long",
+    "offset: ulong",
+    "width: int literal 4 or 8"
+   ],
+   "result": "ulong",
+   "summary": "One aligned 32- or 64-bit load from a readable mapping. Program mode only.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:904-905",
+     "quote": "ret 174"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/host/MAPPING.md:19",
+     "quote": "`mapget handle offset width`"
+    }
+   ],
+   "example": "mapping"
+  },
+  "mapset": {
+   "table": "kw",
+   "id": 175,
+   "category": "device",
+   "profile": "OM-1",
+   "form": "mapset handle offset width value",
+   "arity": 4,
+   "types": [
+    "handle: long",
+    "offset: ulong",
+    "width: int literal 4 or 8",
+    "value: ulong"
+   ],
+   "result": "long",
+   "summary": "One aligned 32- or 64-bit store into a writable mapping; returns 0. Program mode only.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:907-908",
+     "quote": "ret 175"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/host/MAPPING.md:20",
+     "quote": "`mapset handle offset width value`"
+    }
+   ],
+   "example": "mapping"
+  },
+  "maphold": {
+   "table": "kw",
+   "id": 176,
+   "category": "device",
+   "profile": "OM-1",
+   "form": "maphold address bytes",
+   "arity": 2,
+   "types": [
+    "address: ulong (at least 64 KiB, span below 1 TiB)",
+    "bytes: ulong"
+   ],
+   "result": "long (handle)",
+   "summary": "Reserve an unused page-aligned span (PROT_NONE, MAP_FIXED_NOREPLACE). Program mode only.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:910-911",
+     "quote": "ret 176"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/host/MAPPING.md:21",
+     "quote": "`maphold address bytes`"
+    }
+   ],
+   "example": "mapping"
+  },
+  "mapbind": {
+   "table": "kw",
+   "id": 177,
+   "category": "device",
+   "profile": "OM-1",
+   "form": "mapbind handle fd offset access",
+   "arity": 4,
+   "types": [
+    "handle: long",
+    "fd: int",
+    "offset: ulong",
+    "access: int literal 1 or 3"
+   ],
+   "result": "long",
+   "summary": "Bind a shared file or device mapping over a whole owned reservation. Program mode only.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:913-914",
+     "quote": "ret 177"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/host/MAPPING.md:22",
+     "quote": "`mapbind handle fd offset access`"
+    }
+   ],
+   "example": "mapping"
+  },
+  "bool": {
+   "table": "kw",
+   "id": 1,
+   "category": "type",
+   "profile": "OM-1",
+   "form": "bool VALUE  (conversion) | NAME bool  (parameter) | to bool  (result)",
+   "arity": 1,
+   "types": [
+    "VALUE: any integer, float or bool value"
+   ],
+   "result": "bool",
+   "summary": "Type word: bool (true 1, false 0), sizeof 1; never an array element. As a prefix it converts a value, trapping 5 when out of range.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:919-920",
+     "quote": "ret 1"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:447",
+     "quote": "`true` and `false` are the bool numbers 1 and 0."
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    }
+   ],
+   "example": "control"
+  },
+  "uchar": {
+   "table": "kw",
+   "id": 2,
+   "category": "type",
+   "profile": "OM-1",
+   "form": "uchar VALUE  (conversion) | NAME uchar  (parameter) | to uchar  (result)",
+   "arity": 1,
+   "types": [
+    "VALUE: any integer, float or bool value"
+   ],
+   "result": "uchar",
+   "summary": "Type word: unsigned 8-bit integer, sizeof 1. Arithmetic wraps modulo 2^width. As a prefix it converts a value, trapping 5 when out of range.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:922-923",
+     "quote": "ret 2"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:431",
+     "quote": "(uchar 8, ushort 16, uint 32, ulong 64 bits)"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    }
+   ],
+   "example": "ints"
+  },
+  "u8": {
+   "table": "kw",
+   "id": 2,
+   "category": "type",
+   "profile": "OM-1",
+   "form": "u8 VALUE  (conversion) | NAME u8  (parameter) | to u8  (result)",
+   "arity": 1,
+   "types": [
+    "VALUE: any integer, float or bool value"
+   ],
+   "result": "uchar",
+   "summary": "Alias of uchar (same keyword id): unsigned 8-bit, sizeof 1. Arithmetic wraps modulo 2^width. As a prefix it converts a value, trapping 5 when out of range.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:925-926",
+     "quote": "ret 2"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:431",
+     "quote": "(uchar 8, ushort 16, uint 32, ulong 64 bits)"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    }
+   ],
+   "example": "ints"
+  },
+  "ushort": {
+   "table": "kw",
+   "id": 3,
+   "category": "type",
+   "profile": "OM-1",
+   "form": "ushort VALUE  (conversion) | NAME ushort  (parameter) | to ushort  (result)",
+   "arity": 1,
+   "types": [
+    "VALUE: any integer, float or bool value"
+   ],
+   "result": "ushort",
+   "summary": "Type word: unsigned 16-bit integer, sizeof 2. Arithmetic wraps modulo 2^width. As a prefix it converts a value, trapping 5 when out of range.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:928-929",
+     "quote": "ret 3"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:431",
+     "quote": "(uchar 8, ushort 16, uint 32, ulong 64 bits)"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    }
+   ],
+   "example": "ints"
+  },
+  "u16": {
+   "table": "kw",
+   "id": 3,
+   "category": "type",
+   "profile": "OM-1",
+   "form": "u16 VALUE  (conversion) | NAME u16  (parameter) | to u16  (result)",
+   "arity": 1,
+   "types": [
+    "VALUE: any integer, float or bool value"
+   ],
+   "result": "ushort",
+   "summary": "Alias of ushort (same keyword id): unsigned 16-bit, sizeof 2. Arithmetic wraps modulo 2^width. As a prefix it converts a value, trapping 5 when out of range.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:931-932",
+     "quote": "ret 3"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:431",
+     "quote": "(uchar 8, ushort 16, uint 32, ulong 64 bits)"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    }
+   ],
+   "example": "ints"
+  },
+  "uint": {
+   "table": "kw",
+   "id": 4,
+   "category": "type",
+   "profile": "OM-1",
+   "form": "uint VALUE  (conversion) | NAME uint  (parameter) | to uint  (result)",
+   "arity": 1,
+   "types": [
+    "VALUE: any integer, float or bool value"
+   ],
+   "result": "uint",
+   "summary": "Type word: unsigned 32-bit integer, sizeof 4. Arithmetic wraps modulo 2^width. As a prefix it converts a value, trapping 5 when out of range.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:934-935",
+     "quote": "ret 4"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:431",
+     "quote": "(uchar 8, ushort 16, uint 32, ulong 64 bits)"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    }
+   ],
+   "example": "ints"
+  },
+  "u32": {
+   "table": "kw",
+   "id": 4,
+   "category": "type",
+   "profile": "OM-1",
+   "form": "u32 VALUE  (conversion) | NAME u32  (parameter) | to u32  (result)",
+   "arity": 1,
+   "types": [
+    "VALUE: any integer, float or bool value"
+   ],
+   "result": "uint",
+   "summary": "Alias of uint (same keyword id): unsigned 32-bit, sizeof 4. Arithmetic wraps modulo 2^width. As a prefix it converts a value, trapping 5 when out of range.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:937-938",
+     "quote": "ret 4"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:431",
+     "quote": "(uchar 8, ushort 16, uint 32, ulong 64 bits)"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    }
+   ],
+   "example": "ints"
+  },
+  "ulong": {
+   "table": "kw",
+   "id": 5,
+   "category": "type",
+   "profile": "OM-1",
+   "form": "ulong VALUE  (conversion) | NAME ulong  (parameter) | to ulong  (result)",
+   "arity": 1,
+   "types": [
+    "VALUE: any integer, float or bool value"
+   ],
+   "result": "ulong",
+   "summary": "Type word: unsigned 64-bit integer, sizeof 8. Arithmetic wraps modulo 2^width. As a prefix it converts a value, trapping 5 when out of range.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:940-941",
+     "quote": "ret 5"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:431",
+     "quote": "(uchar 8, ushort 16, uint 32, ulong 64 bits)"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    }
+   ],
+   "example": "ints"
+  },
+  "u64": {
+   "table": "kw",
+   "id": 5,
+   "category": "type",
+   "profile": "OM-1",
+   "form": "u64 VALUE  (conversion) | NAME u64  (parameter) | to u64  (result)",
+   "arity": 1,
+   "types": [
+    "VALUE: any integer, float or bool value"
+   ],
+   "result": "ulong",
+   "summary": "Alias of ulong (same keyword id): unsigned 64-bit, sizeof 8. Arithmetic wraps modulo 2^width. As a prefix it converts a value, trapping 5 when out of range.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:943-944",
+     "quote": "ret 5"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:431",
+     "quote": "(uchar 8, ushort 16, uint 32, ulong 64 bits)"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    }
+   ],
+   "example": "ints"
+  },
+  "byte": {
+   "table": "kw",
+   "id": 6,
+   "category": "type",
+   "profile": "OM-1",
+   "form": "byte VALUE  (conversion) | NAME byte  (parameter) | to byte  (result)",
+   "arity": 1,
+   "types": [
+    "VALUE: any integer, float or bool value"
+   ],
+   "result": "byte",
+   "summary": "Type word: signed 8-bit integer, sizeof 1. Signed add/sub/mul/neg/div/shl trap 1 on overflow. As a prefix it converts a value, trapping 5 when out of range.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:946-947",
+     "quote": "ret 6"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:433-434",
+     "quote": "(byte 8,"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    }
+   ],
+   "example": "ints"
+  },
+  "i8": {
+   "table": "kw",
+   "id": 6,
+   "category": "type",
+   "profile": "OM-1",
+   "form": "i8 VALUE  (conversion) | NAME i8  (parameter) | to i8  (result)",
+   "arity": 1,
+   "types": [
+    "VALUE: any integer, float or bool value"
+   ],
+   "result": "byte",
+   "summary": "Alias of byte (same keyword id): signed 8-bit, sizeof 1. Signed add/sub/mul/neg/div/shl trap 1 on overflow. As a prefix it converts a value, trapping 5 when out of range.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:949-950",
+     "quote": "ret 6"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:433-434",
+     "quote": "(byte 8,"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    }
+   ],
+   "example": "ints"
+  },
+  "short": {
+   "table": "kw",
+   "id": 7,
+   "category": "type",
+   "profile": "OM-1",
+   "form": "short VALUE  (conversion) | NAME short  (parameter) | to short  (result)",
+   "arity": 1,
+   "types": [
+    "VALUE: any integer, float or bool value"
+   ],
+   "result": "short",
+   "summary": "Type word: signed 16-bit integer, sizeof 2. Signed add/sub/mul/neg/div/shl trap 1 on overflow. As a prefix it converts a value, trapping 5 when out of range.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:952-953",
+     "quote": "ret 7"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:433-434",
+     "quote": "(byte 8,"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    }
+   ],
+   "example": "ints"
+  },
+  "i16": {
+   "table": "kw",
+   "id": 7,
+   "category": "type",
+   "profile": "OM-1",
+   "form": "i16 VALUE  (conversion) | NAME i16  (parameter) | to i16  (result)",
+   "arity": 1,
+   "types": [
+    "VALUE: any integer, float or bool value"
+   ],
+   "result": "short",
+   "summary": "Alias of short (same keyword id): signed 16-bit, sizeof 2. Signed add/sub/mul/neg/div/shl trap 1 on overflow. As a prefix it converts a value, trapping 5 when out of range.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:955-956",
+     "quote": "ret 7"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:433-434",
+     "quote": "(byte 8,"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    }
+   ],
+   "example": "ints"
+  },
+  "int": {
+   "table": "kw",
+   "id": 8,
+   "category": "type",
+   "profile": "OM-1",
+   "form": "int VALUE  (conversion) | NAME int  (parameter) | to int  (result)",
+   "arity": 1,
+   "types": [
+    "VALUE: any integer, float or bool value"
+   ],
+   "result": "int",
+   "summary": "Type word: signed 32-bit integer, sizeof 4. Signed add/sub/mul/neg/div/shl trap 1 on overflow. As a prefix it converts a value, trapping 5 when out of range.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:958-959",
+     "quote": "ret 8"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:433-434",
+     "quote": "(byte 8,"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    }
+   ],
+   "example": "hello"
+  },
+  "i32": {
+   "table": "kw",
+   "id": 8,
+   "category": "type",
+   "profile": "OM-1",
+   "form": "i32 VALUE  (conversion) | NAME i32  (parameter) | to i32  (result)",
+   "arity": 1,
+   "types": [
+    "VALUE: any integer, float or bool value"
+   ],
+   "result": "int",
+   "summary": "Alias of int (same keyword id): signed 32-bit, sizeof 4. Signed add/sub/mul/neg/div/shl trap 1 on overflow. As a prefix it converts a value, trapping 5 when out of range.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:961-962",
+     "quote": "ret 8"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:433-434",
+     "quote": "(byte 8,"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    }
+   ],
+   "example": "ints"
+  },
+  "long": {
+   "table": "kw",
+   "id": 9,
+   "category": "type",
+   "profile": "OM-1",
+   "form": "long VALUE  (conversion) | NAME long  (parameter) | to long  (result)",
+   "arity": 1,
+   "types": [
+    "VALUE: any integer, float or bool value"
+   ],
+   "result": "long",
+   "summary": "Type word: signed 64-bit integer, sizeof 8. Signed add/sub/mul/neg/div/shl trap 1 on overflow. As a prefix it converts a value, trapping 5 when out of range.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:964-965",
+     "quote": "ret 9"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:433-434",
+     "quote": "(byte 8,"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    }
+   ],
+   "example": "ints"
+  },
+  "i64": {
+   "table": "kw",
+   "id": 9,
+   "category": "type",
+   "profile": "OM-1",
+   "form": "i64 VALUE  (conversion) | NAME i64  (parameter) | to i64  (result)",
+   "arity": 1,
+   "types": [
+    "VALUE: any integer, float or bool value"
+   ],
+   "result": "long",
+   "summary": "Alias of long (same keyword id): signed 64-bit, sizeof 8. Signed add/sub/mul/neg/div/shl trap 1 on overflow. As a prefix it converts a value, trapping 5 when out of range.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:967-968",
+     "quote": "ret 9"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:433-434",
+     "quote": "(byte 8,"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:439",
+     "quote": "A conversion `<type> v` traps 5 when the value is outside the new type."
+    }
+   ],
+   "example": "ints"
+  },
+  "add": {
+   "table": "kw",
+   "id": 33,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "add A B",
+   "arity": 2,
+   "types": [
+    "A: number type T",
+    "B: the same type T"
+   ],
+   "result": "T",
+   "summary": "Binary operator: a + b. Both operands have one type (no implicit conversion, error 7).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:970-971",
+     "quote": "ret 33"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:431",
+     "quote": "Unsigned add, sub, mul, shl, neg, not wrap modulo 2^width"
+    }
+   ],
+   "example": "ints"
+  },
+  "sub": {
+   "table": "kw",
+   "id": 34,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "sub A B",
+   "arity": 2,
+   "types": [
+    "A: number type T",
+    "B: the same type T"
+   ],
+   "result": "T",
+   "summary": "Binary operator: a - b. Both operands have one type (no implicit conversion, error 7).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:973-974",
+     "quote": "ret 34"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:431",
+     "quote": "Unsigned add, sub, mul, shl, neg, not wrap modulo 2^width"
+    }
+   ],
+   "example": "arith"
+  },
+  "mul": {
+   "table": "kw",
+   "id": 35,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "mul A B",
+   "arity": 2,
+   "types": [
+    "A: number type T",
+    "B: the same type T"
+   ],
+   "result": "T",
+   "summary": "Binary operator: a * b. Both operands have one type (no implicit conversion, error 7).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:976-977",
+     "quote": "ret 35"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:431",
+     "quote": "Unsigned add, sub, mul, shl, neg, not wrap modulo 2^width"
+    }
+   ],
+   "example": "arith"
+  },
+  "div": {
+   "table": "kw",
+   "id": 36,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "div A B",
+   "arity": 2,
+   "types": [
+    "A: number type T",
+    "B: the same type T"
+   ],
+   "result": "T",
+   "summary": "Binary operator: a / b, rounding toward zero; divisor 0 traps 2. Both operands have one type (no implicit conversion, error 7).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:979-980",
+     "quote": "ret 36"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:435",
+     "quote": "div and rem trap 2 when the divisor is 0."
+    }
+   ],
+   "example": "arith"
+  },
+  "rem": {
+   "table": "kw",
+   "id": 37,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "rem A B",
+   "arity": 2,
+   "types": [
+    "A: number type T",
+    "B: the same type T"
+   ],
+   "result": "T",
+   "summary": "Binary operator: remainder with the sign of the dividend; divisor 0 traps 2. Both operands have one type (no implicit conversion, error 7).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:982-983",
+     "quote": "ret 37"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:435",
+     "quote": "div and rem trap 2 when the divisor is 0."
+    }
+   ],
+   "example": "ints"
+  },
+  "and": {
+   "table": "kw",
+   "id": 38,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "and A B",
+   "arity": 2,
+   "types": [
+    "A: number type T",
+    "B: the same type T"
+   ],
+   "result": "T",
+   "summary": "Binary operator: bitwise and (bool and for bools; eager). Both operands have one type (no implicit conversion, error 7).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:985-986",
+     "quote": "ret 38"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:440-441",
+     "quote": "the two values of an op"
+    }
+   ],
+   "example": "arith"
+  },
+  "or": {
+   "table": "kw",
+   "id": 39,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "or A B",
+   "arity": 2,
+   "types": [
+    "A: number type T",
+    "B: the same type T"
+   ],
+   "result": "T",
+   "summary": "Binary operator: bitwise or (bool or for bools; eager). Both operands have one type (no implicit conversion, error 7).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:988-989",
+     "quote": "ret 39"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:440-441",
+     "quote": "the two values of an op"
+    }
+   ],
+   "example": "arith"
+  },
+  "xor": {
+   "table": "kw",
+   "id": 40,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "xor A B",
+   "arity": 2,
+   "types": [
+    "A: number type T",
+    "B: the same type T"
+   ],
+   "result": "T",
+   "summary": "Binary operator: bitwise exclusive or. Both operands have one type (no implicit conversion, error 7).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:991-992",
+     "quote": "ret 40"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:440-441",
+     "quote": "the two values of an op"
+    }
+   ],
+   "example": "arith"
+  },
+  "shl": {
+   "table": "kw",
+   "id": 41,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "shl A B",
+   "arity": 2,
+   "types": [
+    "A: number type T",
+    "B: the same type T"
+   ],
+   "result": "T",
+   "summary": "Binary operator: shift left; amount outside 0..width-1 traps 7. Both operands have one type (no implicit conversion, error 7).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:994-995",
+     "quote": "ret 41"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:437",
+     "quote": "A shift amount outside 0 .. width - 1 traps 7"
+    }
+   ],
+   "example": "arith"
+  },
+  "shr": {
+   "table": "kw",
+   "id": 42,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "shr A B",
+   "arity": 2,
+   "types": [
+    "A: number type T",
+    "B: the same type T"
+   ],
+   "result": "T",
+   "summary": "Binary operator: shift right (arithmetic for signed); amount outside 0..width-1 traps 7. Both operands have one type (no implicit conversion, error 7).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:997-998",
+     "quote": "ret 42"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:437",
+     "quote": "shr of a signed value keeps the sign."
+    }
+   ],
+   "example": "arith"
+  },
+  "eq": {
+   "table": "kw",
+   "id": 43,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "eq A B",
+   "arity": 2,
+   "types": [
+    "A: number type T",
+    "B: the same type T"
+   ],
+   "result": "bool",
+   "summary": "Comparison: equal (unsigned or signed by the operands' type; IEEE for floats).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1000-1001",
+     "quote": "ret 43"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:567",
+     "quote": "comparisons `eq ne lt le gt ge`"
+    }
+   ],
+   "example": "arith"
+  },
+  "ne": {
+   "table": "kw",
+   "id": 44,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "ne A B",
+   "arity": 2,
+   "types": [
+    "A: number type T",
+    "B: the same type T"
+   ],
+   "result": "bool",
+   "summary": "Comparison: not equal (unsigned or signed by the operands' type; IEEE for floats).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1003-1004",
+     "quote": "ret 44"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:567",
+     "quote": "comparisons `eq ne lt le gt ge`"
+    }
+   ],
+   "example": "arith"
+  },
+  "lt": {
+   "table": "kw",
+   "id": 45,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "lt A B",
+   "arity": 2,
+   "types": [
+    "A: number type T",
+    "B: the same type T"
+   ],
+   "result": "bool",
+   "summary": "Comparison: less than (unsigned or signed by the operands' type; IEEE for floats).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1006-1007",
+     "quote": "ret 45"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:567",
+     "quote": "comparisons `eq ne lt le gt ge`"
+    }
+   ],
+   "example": "arith"
+  },
+  "le": {
+   "table": "kw",
+   "id": 46,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "le A B",
+   "arity": 2,
+   "types": [
+    "A: number type T",
+    "B: the same type T"
+   ],
+   "result": "bool",
+   "summary": "Comparison: less or equal (unsigned or signed by the operands' type; IEEE for floats).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1009-1010",
+     "quote": "ret 46"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:567",
+     "quote": "comparisons `eq ne lt le gt ge`"
+    }
+   ],
+   "example": "arith"
+  },
+  "gt": {
+   "table": "kw",
+   "id": 47,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "gt A B",
+   "arity": 2,
+   "types": [
+    "A: number type T",
+    "B: the same type T"
+   ],
+   "result": "bool",
+   "summary": "Comparison: greater than (unsigned or signed by the operands' type; IEEE for floats).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1012-1013",
+     "quote": "ret 47"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:567",
+     "quote": "comparisons `eq ne lt le gt ge`"
+    }
+   ],
+   "example": "arith"
+  },
+  "ge": {
+   "table": "kw",
+   "id": 48,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "ge A B",
+   "arity": 2,
+   "types": [
+    "A: number type T",
+    "B: the same type T"
+   ],
+   "result": "bool",
+   "summary": "Comparison: greater or equal (unsigned or signed by the operands' type; IEEE for floats).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1015-1016",
+     "quote": "ret 48"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:567",
+     "quote": "comparisons `eq ne lt le gt ge`"
+    }
+   ],
+   "example": "arith"
+  },
+  "neg": {
+   "table": "kw",
+   "id": 49,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "neg A",
+   "arity": 1,
+   "types": [
+    "A: number type T"
+   ],
+   "result": "T",
+   "summary": "Negation: wraps for unsigned types, traps 1 for the signed minimum, IEEE for floats.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1018-1019",
+     "quote": "ret 49"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:433",
+     "quote": "Signed add, sub, mul, neg, div and shl trap 1"
+    }
+   ],
+   "example": "arith"
+  },
+  "not": {
+   "table": "kw",
+   "id": 50,
+   "category": "operator",
+   "profile": "OM-1",
+   "form": "not A",
+   "arity": 1,
+   "types": [
+    "A: integer type T or bool"
+   ],
+   "result": "T",
+   "summary": "Bitwise complement of an integer; logical not of a bool.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1021-1022",
+     "quote": "ret 50"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:431",
+     "quote": "Unsigned add, sub, mul, shl, neg, not wrap modulo 2^width"
+    }
+   ],
+   "example": "arith"
+  },
+  "get": {
+   "table": "kw",
+   "id": 51,
+   "category": "data",
+   "profile": "OM-1",
+   "form": "get A i | get P field [i]",
+   "arity": 2,
+   "types": [
+    "A: array",
+    "i: integer index"
+   ],
+   "result": "element type",
+   "summary": "Read element i of an array (or a struct/layout field). A constant index outside is error 21; a run-time one traps 3.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1024-1025",
+     "quote": "ret 51"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:471",
+     "quote": "`get A i` reads element i"
+    }
+   ],
+   "example": "arrays"
+  },
+  "len": {
+   "table": "kw",
+   "id": 52,
+   "category": "data",
+   "profile": "OM-1",
+   "form": "len A",
+   "arity": 1,
+   "types": [
+    "A: array or text"
+   ],
+   "result": "ulong",
+   "summary": "Length of an array as a ulong.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1027-1028",
+     "quote": "ret 52"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:471",
+     "quote": "`len A` is A's length as a ulong."
+    }
+   ],
+   "example": "hello"
+  },
+  "read": {
+   "table": "kw",
+   "id": 53,
+   "category": "data",
+   "profile": "OM-1",
+   "form": "read fd A off n",
+   "arity": 4,
+   "types": [
+    "fd: int",
+    "A: writable uchar array",
+    "off: ulong",
+    "n: ulong"
+   ],
+   "result": "long",
+   "summary": "Read n bytes from fd into A[off..]; bytes read or minus errno. Slice outside A traps 3.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1030-1031",
+     "quote": "ret 53"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:478",
+     "quote": "`read fd A off n` and `write fd A off n` (fd int, off and n ulong)"
+    }
+   ],
+   "example": "files"
+  },
+  "write": {
+   "table": "kw",
+   "id": 54,
+   "category": "data",
+   "profile": "OM-1",
+   "form": "write fd A off n",
+   "arity": 4,
+   "types": [
+    "fd: int",
+    "A: uchar array or text",
+    "off: ulong",
+    "n: ulong"
+   ],
+   "result": "long",
+   "summary": "Write A[off..off+n-1] to fd; bytes written or minus errno. Slice outside A traps 3.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1033-1034",
+     "quote": "ret 54"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:478",
+     "quote": "`read fd A off n` and `write fd A off n` (fd int, off and n ulong)"
+    }
+   ],
+   "example": "hello"
+  },
+  "true": {
+   "table": "kw",
+   "id": 55,
+   "category": "data",
+   "profile": "OM-1",
+   "form": "true",
+   "arity": 0,
+   "types": [],
+   "result": "bool",
+   "summary": "The bool value 1.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1036-1037",
+     "quote": "ret 55"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:447",
+     "quote": "`true` and `false` are the bool numbers 1 and 0."
+    }
+   ],
+   "example": "control"
+  },
+  "false": {
+   "table": "kw",
+   "id": 56,
+   "category": "data",
+   "profile": "OM-1",
+   "form": "false",
+   "arity": 0,
+   "types": [],
+   "result": "bool",
+   "summary": "The bool value 0.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1039-1040",
+     "quote": "ret 56"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:447",
+     "quote": "`true` and `false` are the bool numbers 1 and 0."
+    }
+   ],
+   "example": "control"
+  },
+  "view": {
+   "table": "kw",
+   "id": 57,
+   "category": "data",
+   "profile": "OM-1",
+   "form": "NAME view T N | NAME view T *  (parameter) | view A  (argument)",
+   "arity": 3,
+   "types": [
+    "T: element type",
+    "N: length or * (OM-2 unsized)"
+   ],
+   "result": "-",
+   "summary": "Read-only array parameter of exact type and length; writing through it is error 20.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1042-1043",
+     "quote": "ret 57"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:464",
+     "quote": "A parameter `NAME view T N` or `NAME edit T N`"
+    }
+   ],
+   "example": "arrays"
+  },
+  "edit": {
+   "table": "kw",
+   "id": 58,
+   "category": "data",
+   "profile": "OM-1",
+   "form": "NAME edit T N | NAME edit T *  (parameter) | edit A  (argument)",
+   "arity": 3,
+   "types": [
+    "T: element type",
+    "N: length or * (OM-2 unsized)"
+   ],
+   "result": "-",
+   "summary": "Writable array parameter of exact type and length; a global is never passed (error 19).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1045-1046",
+     "quote": "ret 58"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:464",
+     "quote": "A parameter `NAME view T N` or `NAME edit T N`"
+    }
+   ],
+   "example": "arrays"
+  },
+  "fn": {
+   "table": "kw",
+   "id": 64,
+   "category": "structure",
+   "profile": "OM-1",
+   "form": "fn NAME (PARAM TYPE)* to TYPE|void [inline]",
+   "arity": 3,
+   "types": [
+    "NAME: up to 63 characters",
+    "PARAM: up to 8 characters, at most 6 slots"
+   ],
+   "result": "-",
+   "summary": "Start a function; `end` closes it. `fn main` makes a whole Linux program (program mode).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1048-1049",
+     "quote": "ret 64"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:54",
+     "quote": "a function; `end` closes it"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:402",
+     "quote": "A program with a line `fn main` is a whole Linux program"
+    }
+   ],
+   "example": "hello"
+  },
+  "to": {
+   "table": "kw",
+   "id": 65,
+   "category": "structure",
+   "profile": "OM-1",
+   "form": "fn ... to TYPE|void",
+   "arity": 1,
+   "types": [
+    "TYPE: a scalar type or void"
+   ],
+   "result": "-",
+   "summary": "Introduces a function's result type.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1051-1052",
+     "quote": "ret 65"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:54",
+     "quote": "to <type> | void"
+    }
+   ],
+   "example": "hello"
+  },
+  "end": {
+   "table": "kw",
+   "id": 66,
+   "category": "structure",
+   "profile": "OM-1",
+   "form": "end",
+   "arity": 0,
+   "types": [],
+   "result": "-",
+   "summary": "Closes fn, if/else, while, for, struct and layout blocks. A missing end is error 15.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1054-1055",
+     "quote": "ret 66"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:54",
+     "quote": "`end` closes it"
+    }
+   ],
+   "example": "hello"
+  },
+  "if": {
+   "table": "kw",
+   "id": 67,
+   "category": "structure",
+   "profile": "OM-1",
+   "form": "if COND / [else] / end",
+   "arity": 1,
+   "types": [
+    "COND: bool"
+   ],
+   "result": "-",
+   "summary": "Conditional block.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1057-1058",
+     "quote": "ret 67"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:57",
+     "quote": "if <cond> / else / end"
+    }
+   ],
+   "example": "control"
+  },
+  "else": {
+   "table": "kw",
+   "id": 68,
+   "category": "structure",
+   "profile": "OM-1",
+   "form": "else",
+   "arity": 0,
+   "types": [],
+   "result": "-",
+   "summary": "Second arm of an if block.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1060-1061",
+     "quote": "ret 68"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:57",
+     "quote": "if <cond> / else / end"
+    }
+   ],
+   "example": "control"
+  },
+  "while": {
+   "table": "kw",
+   "id": 69,
+   "category": "structure",
+   "profile": "OM-1",
+   "form": "while COND [bound N] / end",
+   "arity": 1,
+   "types": [
+    "COND: bool",
+    "N: 1..999999"
+   ],
+   "result": "-",
+   "summary": "Loop while COND holds; past N iterations (default 1000000) it traps 4.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1063-1064",
+     "quote": "ret 69"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:58",
+     "quote": "while <cond> [bound N] / end"
+    }
+   ],
+   "example": "control"
+  },
+  "bound": {
+   "table": "kw",
+   "id": 70,
+   "category": "structure",
+   "profile": "OM-1",
+   "form": "while COND bound N",
+   "arity": 1,
+   "types": [
+    "N: integer literal or constant 1..999999"
+   ],
+   "result": "-",
+   "summary": "Iteration limit of a while loop; exceeding it traps 4.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1066-1067",
+     "quote": "ret 70"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:58",
+     "quote": "N 1..999999, default 1000000; past N iterations: trap 4"
+    }
+   ],
+   "example": "control"
+  },
+  "for": {
+   "table": "kw",
+   "id": 71,
+   "category": "structure",
+   "profile": "OM-1",
+   "form": "for NAME TYPE COUNT [unroll] / end",
+   "arity": 3,
+   "types": [
+    "NAME: new counter",
+    "TYPE: integer type",
+    "COUNT: number or value of TYPE"
+   ],
+   "result": "-",
+   "summary": "Counted loop: NAME = 0 .. COUNT-1.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1069-1070",
+     "quote": "ret 71"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:59",
+     "quote": "for <name> <type> <count> / end"
+    }
+   ],
+   "example": "control"
+  },
+  "ret": {
+   "table": "kw",
+   "id": 72,
+   "category": "structure",
+   "profile": "OM-1",
+   "form": "ret [VALUE]",
+   "arity": 1,
+   "types": [
+    "VALUE: the function's result type (none for void)"
+   ],
+   "result": "-",
+   "summary": "Return from the function; ends the path (a later line in the block is error 17).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1072-1073",
+     "quote": "ret 72"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:65",
+     "quote": "ret [<value>]"
+    }
+   ],
+   "example": "hello"
+  },
+  "=": {
+   "table": "kw",
+   "id": 73,
+   "category": "structure",
+   "profile": "OM-1",
+   "form": "NAME = VALUE",
+   "arity": 2,
+   "types": [
+    "NAME: new or existing name of the same type",
+    "VALUE: any value"
+   ],
+   "result": "-",
+   "summary": "Bind or overwrite a name (the = may be left out).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1075-1076",
+     "quote": "ret 73"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:55",
+     "quote": "<name> = <value>"
+    }
+   ],
+   "example": "hello"
+  },
+  "(": {
+   "table": "kw",
+   "id": 74,
+   "category": "structure",
+   "profile": "OM-1",
+   "form": "( VALUE )",
+   "arity": 1,
+   "types": [
+    "VALUE: any value"
+   ],
+   "result": "VALUE's type",
+   "summary": "Grouping: returns exactly the value inside; adds no code.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1078-1079",
+     "quote": "ret 74"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:589",
+     "quote": "`(` and `)` are separate words"
+    }
+   ],
+   "example": "calls"
+  },
+  ")": {
+   "table": "kw",
+   "id": 75,
+   "category": "structure",
+   "profile": "OM-1",
+   "form": "( VALUE )",
+   "arity": 1,
+   "types": [
+    "VALUE: any value"
+   ],
+   "result": "VALUE's type",
+   "summary": "Closes a group; a missing ) is error 16.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1081-1082",
+     "quote": "ret 75"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:589",
+     "quote": "`(` and `)` are separate words"
+    }
+   ],
+   "example": "calls"
+  },
+  "void": {
+   "table": "kw",
+   "id": 76,
+   "category": "structure",
+   "profile": "OM-1",
+   "form": "fn ... to void",
+   "arity": 0,
+   "types": [],
+   "result": "-",
+   "summary": "A function that returns no value; ret without a value or reaching end returns.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1084-1085",
+     "quote": "ret 76"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:420",
+     "quote": "`to void` makes a void function"
+    }
+   ],
+   "example": "arrays"
+  },
+  "global": {
+   "table": "kw",
+   "id": 78,
+   "category": "statement",
+   "profile": "OM-1",
+   "form": "global NAME T N",
+   "arity": 3,
+   "types": [
+    "NAME: up to 8 characters",
+    "T: element type",
+    "N: 1..16777216"
+   ],
+   "result": "-",
+   "summary": "A zero-filled pool of N elements in the program image. Program mode only; never passed as an argument (error 19).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1087-1088",
+     "quote": "ret 78"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:454",
+     "quote": "`global NAME T N`: a pool of N elements (1 .. 16777216)"
+    }
+   ],
+   "example": "arrays"
+  },
+  "text": {
+   "table": "kw",
+   "id": 79,
+   "category": "statement",
+   "profile": "OM-1",
+   "form": "text NAME \"bytes\"",
+   "arity": 2,
+   "types": [
+    "NAME: up to 8 characters",
+    "bytes: escapes \\n \\t \\\\ \\\""
+   ],
+   "result": "-",
+   "summary": "A read-only uchar array holding the quoted bytes. Program mode only.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1090-1091",
+     "quote": "ret 79"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:457",
+     "quote": "`text NAME \"bytes\"`: a read-only array of uchar"
+    }
+   ],
+   "example": "hello"
+  },
+  "put": {
+   "table": "kw",
+   "id": 80,
+   "category": "statement",
+   "profile": "OM-1",
+   "form": "put A i v | put P field [i] v",
+   "arity": 3,
+   "types": [
+    "A: writable array",
+    "i: integer index",
+    "v: element type"
+   ],
+   "result": "-",
+   "summary": "Store v at element i. Into a view or text: error 20.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1093-1094",
+     "quote": "ret 80"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:66",
+     "quote": "put <array> <index> <value>"
+    }
+   ],
+   "example": "arrays"
+  },
+  "free": {
+   "table": "kw",
+   "id": 81,
+   "category": "statement",
+   "profile": "OM-1",
+   "form": "free  (refused)",
+   "arity": 0,
+   "types": [],
+   "result": "-",
+   "summary": "Reserved and always refused with error 9: arrays are given back when their function returns (decision 24).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1096-1097",
+     "quote": "ret 81"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:462",
+     "quote": "There is no `free`: nothing is given back by hand (decision 24), and the word is refused (error 9)."
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:8530-8531",
+     "quote": "if or or or eq c 77 eq c 78 eq c 79 eq c 81"
+    }
+   ],
+   "example": "free_refused"
+  },
+  "own": {
+   "table": "kw",
+   "id": 77,
+   "category": "statement",
+   "profile": "OM-1",
+   "form": "own  (refused)",
+   "arity": 0,
+   "types": [],
+   "result": "-",
+   "summary": "Reserved word from the om4 draft; as a statement omc refuses it with error 9.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1114-1115",
+     "quote": "ret 77"
+    },
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:8530-8531",
+     "quote": "if or or or eq c 77 eq c 78 eq c 79 eq c 81"
+    }
+   ],
+   "example": "own_refused"
+  },
+  "exit": {
+   "table": "kw",
+   "id": 82,
+   "category": "statement",
+   "profile": "OM-1",
+   "form": "exit v",
+   "arity": 1,
+   "types": [
+    "v: int"
+   ],
+   "result": "-",
+   "summary": "End the program with status v modulo 256; ends the path.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1099-1100",
+     "quote": "ret 82"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:484",
+     "quote": "`exit v` (v int) ends the program with status v modulo 256."
+    }
+   ],
+   "example": "exit"
+  },
+  "note": {
+   "table": "kw",
+   "id": 83,
+   "category": "statement",
+   "profile": "OM-1",
+   "form": "note ...",
+   "arity": 0,
+   "types": [],
+   "result": "-",
+   "summary": "A comment line: nothing after the first word is read.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1102-1103",
+     "quote": "ret 83"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:486",
+     "quote": "`note ...` is a line the translator does not read beyond its first word."
+    }
+   ],
+   "example": "hello"
+  },
+  "new": {
+   "table": "kw",
+   "id": 84,
+   "category": "statement",
+   "profile": "OM-1",
+   "form": "NAME = new T N v | NAME = new STRUCT v1 .. vn",
+   "arity": 3,
+   "types": [
+    "T: element type",
+    "N: length",
+    "v: initial element value"
+   ],
+   "result": "array",
+   "summary": "A local array of N elements, each v, on the stack; only in a function's outermost block (error 9).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1105-1106",
+     "quote": "ret 84"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:460",
+     "quote": "`NAME = new T N v`: a local array of N elements, each v, on the stack"
+    }
+   ],
+   "example": "arrays"
+  },
+  "break": {
+   "table": "kw",
+   "id": 86,
+   "category": "statement",
+   "profile": "OM-1",
+   "form": "break",
+   "arity": 0,
+   "types": [],
+   "result": "-",
+   "summary": "Leave the innermost loop; outside a loop error 9.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1108-1109",
+     "quote": "ret 86"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:61",
+     "quote": "leave the innermost loop; outside a loop: error 9."
+    }
+   ],
+   "example": "control"
+  },
+  "trap": {
+   "table": "kw",
+   "id": 87,
+   "category": "statement",
+   "profile": "OM-1",
+   "form": "trap N",
+   "arity": 1,
+   "types": [
+    "N: 1..14"
+   ],
+   "result": "-",
+   "summary": "Stop with trap code N: program mode exits 100 + N.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1111-1112",
+     "quote": "ret 87"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:67",
+     "quote": "trap <code 1..14>         stop with that code"
+    }
+   ],
+   "example": "trapword"
+  },
+  "continue": {
+   "table": "kw",
+   "id": 97,
+   "category": "statement",
+   "profile": "OM-1",
+   "form": "continue",
+   "arity": 0,
+   "types": [],
+   "result": "-",
+   "summary": "Jump to the next iteration (a while's head, a for's increment).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1243-1244",
+     "quote": "ret 97"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:63",
+     "quote": "jump to the next iteration"
+    }
+   ],
+   "example": "control"
+  },
+  "const": {
+   "table": "kw",
+   "id": 152,
+   "category": "statement",
+   "profile": "OM-1",
+   "form": "const NAME TYPE LITERAL",
+   "arity": 3,
+   "types": [
+    "NAME: up to 8 characters",
+    "TYPE: integer or float type",
+    "LITERAL: value of TYPE"
+   ],
+   "result": "-",
+   "summary": "A named typed constant, usable as a value, array length, for count, while bound or trap code.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:838-839",
+     "quote": "ret 152"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:608",
+     "quote": "`const NAME TYPE LITERAL` at top level defines a named value before use."
+    }
+   ],
+   "example": "consts"
+  },
+  "struct": {
+   "table": "kw",
+   "id": 85,
+   "category": "struct",
+   "profile": "OM-1",
+   "form": "struct Name field type [len] ... end",
+   "arity": 3,
+   "types": [
+    "fields: 1..16, at most 64 eight-byte cells"
+   ],
+   "result": "-",
+   "summary": "A record type of eight-byte cells, declared on one line before the first fn.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1213-1214",
+     "quote": "ret 85"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:502",
+     "quote": "`struct Name field type [len] ... end`, one line, before the first `fn`."
+    }
+   ],
+   "example": "structs"
+  },
+  "sizeof": {
+   "table": "kw",
+   "id": 95,
+   "category": "struct",
+   "profile": "OM-1",
+   "form": "sizeof T | sizeof STRUCT",
+   "arity": 1,
+   "types": [
+    "T: scalar type or struct"
+   ],
+   "result": "ulong",
+   "summary": "Size in bytes; a compile-time constant.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1237-1238",
+     "quote": "ret 95"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:597",
+     "quote": "`sizeof T` is the size in bytes of a scalar type"
+    }
+   ],
+   "example": "structs"
+  },
+  "offsetof": {
+   "table": "kw",
+   "id": 96,
+   "category": "struct",
+   "profile": "OM-1",
+   "form": "offsetof STRUCT field",
+   "arity": 2,
+   "types": [
+    "STRUCT: struct name",
+    "field: field name"
+   ],
+   "result": "ulong",
+   "summary": "Byte offset of a field; a compile-time constant.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1240-1241",
+     "quote": "ret 96"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:599",
+     "quote": "`offsetof S f` is the byte offset of field `f`"
+    }
+   ],
+   "example": "structs"
+  },
+  "f32": {
+   "table": "kw",
+   "id": 88,
+   "category": "float",
+   "profile": "OM-1",
+   "form": "f32 VALUE | 1.5f32",
+   "arity": 1,
+   "types": [
+    "VALUE: integer or float value"
+   ],
+   "result": "f32",
+   "summary": "IEEE-754 binary32 type and conversion.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1216-1217",
+     "quote": "ret 88"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:552",
+     "quote": "`f32` and `f64` are IEEE-754 binary32 and binary64."
+    }
+   ],
+   "example": "floats"
+  },
+  "f64": {
+   "table": "kw",
+   "id": 89,
+   "category": "float",
+   "profile": "OM-1",
+   "form": "f64 VALUE | 1.5f64",
+   "arity": 1,
+   "types": [
+    "VALUE: integer or float value"
+   ],
+   "result": "f64",
+   "summary": "IEEE-754 binary64 type and conversion.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1219-1220",
+     "quote": "ret 89"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:552",
+     "quote": "`f32` and `f64` are IEEE-754 binary32 and binary64."
+    }
+   ],
+   "example": "floats"
+  },
+  "bitcast": {
+   "table": "kw",
+   "id": 90,
+   "category": "float",
+   "profile": "OM-1",
+   "form": "bitcast T VALUE",
+   "arity": 2,
+   "types": [
+    "T: type of the same width",
+    "VALUE: f32/i32/u32 or f64/i64/u64"
+   ],
+   "result": "T",
+   "summary": "Reinterpret the bits of a same-width value.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1222-1223",
+     "quote": "ret 90"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:577",
+     "quote": "`bitcast T value` reinterprets a value of the same width"
+    }
+   ],
+   "example": "floats"
+  },
+  "fsqrt": {
+   "table": "kw",
+   "id": 91,
+   "category": "float",
+   "profile": "OM-1",
+   "form": "fsqrt X",
+   "arity": 1,
+   "types": [
+    "X: f32 or f64"
+   ],
+   "result": "the operand type",
+   "summary": "IEEE square root.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1225-1226",
+     "quote": "ret 91"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:571",
+     "quote": "Intrinsics `fsqrt x` and `fabs x` take one float; `fmin a b` and `fmax a b` take two of one float"
+    }
+   ],
+   "example": "floats"
+  },
+  "fabs": {
+   "table": "kw",
+   "id": 92,
+   "category": "float",
+   "profile": "OM-1",
+   "form": "fabs X",
+   "arity": 1,
+   "types": [
+    "X: f32 or f64"
+   ],
+   "result": "the operand type",
+   "summary": "Absolute value.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1228-1229",
+     "quote": "ret 92"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:571",
+     "quote": "Intrinsics `fsqrt x` and `fabs x` take one float; `fmin a b` and `fmax a b` take two of one float"
+    }
+   ],
+   "example": "floats"
+  },
+  "fmin": {
+   "table": "kw",
+   "id": 93,
+   "category": "float",
+   "profile": "OM-1",
+   "form": "fmin A B",
+   "arity": 2,
+   "types": [
+    "A, B: one float type"
+   ],
+   "result": "the operand type",
+   "summary": "IEEE minNum (FMINNM).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1231-1232",
+     "quote": "ret 93"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:571",
+     "quote": "Intrinsics `fsqrt x` and `fabs x` take one float; `fmin a b` and `fmax a b` take two of one float"
+    }
+   ],
+   "example": "floats"
+  },
+  "fmax": {
+   "table": "kw",
+   "id": 94,
+   "category": "float",
+   "profile": "OM-1",
+   "form": "fmax A B",
+   "arity": 2,
+   "types": [
+    "A, B: one float type"
+   ],
+   "result": "the operand type",
+   "summary": "IEEE maxNum (FMAXNM).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1234-1235",
+     "quote": "ret 94"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:571",
+     "quote": "Intrinsics `fsqrt x` and `fabs x` take one float; `fmin a b` and `fmax a b` take two of one float"
+    }
+   ],
+   "example": "floats"
+  },
+  "rotr": {
+   "table": "kw2",
+   "id": 59,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "rotr X N",
+   "arity": 2,
+   "types": [
+    "X: unsigned type T",
+    "N: T"
+   ],
+   "result": "T",
+   "summary": "Rotate right; N outside 0..w-1 traps 7. OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1264-1265",
+     "quote": "ret 59"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:669",
+     "quote": "`rotr x n` and `rotl x n`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_rotate"
+  },
+  "rotl": {
+   "table": "kw2",
+   "id": 60,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "rotl X N",
+   "arity": 2,
+   "types": [
+    "X: unsigned type T",
+    "N: T"
+   ],
+   "result": "T",
+   "summary": "Rotate left; N outside 0..w-1 traps 7. OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1267-1268",
+     "quote": "ret 60"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:669",
+     "quote": "`rotr x n` and `rotl x n`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_rotate"
+  },
+  "unroll": {
+   "table": "kw2",
+   "id": 181,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "for i T K unroll",
+   "arity": 0,
+   "types": [
+    "K: number 1..64"
+   ],
+   "result": "-",
+   "summary": "Compile the loop body K times with a constant counter. OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1270-1271",
+     "quote": "ret 181"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:673",
+     "quote": "`for i T K unroll`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_unroll"
+  },
+  "inline": {
+   "table": "kw2",
+   "id": 182,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "fn NAME ... to T inline",
+   "arity": 0,
+   "types": [],
+   "result": "-",
+   "summary": "Compile every call of the function in place. OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1273-1274",
+     "quote": "ret 182"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:677",
+     "quote": "`fn NAME ... to T inline`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_unroll"
+  },
+  "fresh": {
+   "table": "kw2",
+   "id": 183,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "NAME edit T N fresh",
+   "arity": 0,
+   "types": [
+    "N: at most 64"
+   ],
+   "result": "-",
+   "summary": "Incoming elements are unspecified; every read needs a prior write (error 27). OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1276-1277",
+     "quote": "ret 183"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:716",
+     "quote": "A parameter `s edit T N fresh`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_fresh"
+  },
+  "abstract": {
+   "table": "kw2",
+   "id": 184,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "abstract NAME T [ops W ...]",
+   "arity": 2,
+   "types": [
+    "T: uint or ulong",
+    "W: rotr rotl and or xor"
+   ],
+   "result": "-",
+   "summary": "Declare an abstract type made only by seal in NAMEmk. OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1279-1280",
+     "quote": "ret 184"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:726",
+     "quote": "`abstract NAME T [ops W ...]`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_abstract"
+  },
+  "seal": {
+   "table": "kw2",
+   "id": 185,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "seal NAME v",
+   "arity": 2,
+   "types": [
+    "NAME: abstract type",
+    "v: its base type T"
+   ],
+   "result": "NAME",
+   "summary": "Make an abstract value; only inside the function NAMEmk (else error 28). OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1282-1283",
+     "quote": "ret 185"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:728",
+     "quote": "A value of it is made only by `seal NAME v`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_abstract"
+  },
+  "open": {
+   "table": "kw2",
+   "id": 186,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "open v",
+   "arity": 1,
+   "types": [
+    "v: abstract value"
+   ],
+   "result": "base type T",
+   "summary": "The base value of an abstract value. OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1285-1286",
+     "quote": "ret 186"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:730",
+     "quote": "`open v` gives the T value."
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_abstract"
+  },
+  "holds": {
+   "table": "kw2",
+   "id": 187,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "holds NAME dup32",
+   "arity": 2,
+   "types": [
+    "NAME: ulong abstract type"
+   ],
+   "result": "-",
+   "summary": "Run-time invariant on every seal: high 32 bits equal low 32 (trap 10). OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1288-1289",
+     "quote": "ret 187"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:727",
+     "quote": "`holds NAME dup32`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_abstract"
+  },
+  "ops": {
+   "table": "kw2",
+   "id": 196,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "abstract NAME T ops W ...",
+   "arity": 1,
+   "types": [
+    "W: rotr rotl and or xor"
+   ],
+   "result": "-",
+   "summary": "The operations allowed on an abstract type. OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1315-1316",
+     "quote": "ret 196"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:726",
+     "quote": "[ops W ...]"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_abstract"
+  },
+  "layout": {
+   "table": "kw2",
+   "id": 188,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "layout NAME SIZE / field ... / end",
+   "arity": 2,
+   "types": [
+    "NAME: up to 8 bytes",
+    "SIZE: 1..4096"
+   ],
+   "result": "-",
+   "summary": "An external byte layout over a uchar array of SIZE bytes. OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1291-1292",
+     "quote": "ret 188"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:703",
+     "quote": "`layout NAME SIZE`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_layout"
+  },
+  "field": {
+   "table": "kw2",
+   "id": 189,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "field F T [COUNT] at OFF little|big",
+   "arity": 5,
+   "types": [
+    "T: integer type",
+    "COUNT: 1..4096",
+    "OFF: byte offset"
+   ],
+   "result": "-",
+   "summary": "One field of a layout. OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1294-1295",
+     "quote": "ret 189"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:703",
+     "quote": "`field F T [COUNT] at OFF little|big`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_layout"
+  },
+  "at": {
+   "table": "kw2",
+   "id": 190,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "field F T at OFF ...",
+   "arity": 1,
+   "types": [
+    "OFF: byte offset"
+   ],
+   "result": "-",
+   "summary": "Introduces a layout field's byte offset. OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1297-1298",
+     "quote": "ret 190"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:703",
+     "quote": "at OFF little|big"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_layout"
+  },
+  "little": {
+   "table": "kw2",
+   "id": 191,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "field ... at OFF little",
+   "arity": 0,
+   "types": [],
+   "result": "-",
+   "summary": "Little-endian layout field. OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1300-1301",
+     "quote": "ret 191"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:703",
+     "quote": "at OFF little|big"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_layout"
+  },
+  "big": {
+   "table": "kw2",
+   "id": 192,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "field ... at OFF big",
+   "arity": 0,
+   "types": [],
+   "result": "-",
+   "summary": "Big-endian layout field (REV on load/store). OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1303-1304",
+     "quote": "ret 192"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:703",
+     "quote": "at OFF little|big"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_layout"
+  },
+  "part": {
+   "table": "kw2",
+   "id": 193,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "part A o k",
+   "arity": 3,
+   "types": [
+    "A: array name",
+    "o: ulong",
+    "k: ulong"
+   ],
+   "result": "view/edit of k elements",
+   "summary": "Elements o..o+k-1 of A, only as an argument for an unsized parameter. OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1306-1307",
+     "quote": "ret 193"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:750",
+     "quote": "`part A o k` (o, k ulong; another type is error 7)"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_part"
+  },
+  "out": {
+   "table": "kw2",
+   "id": 194,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "NAME out T N",
+   "arity": 2,
+   "types": [
+    "T: element type",
+    "N: length"
+   ],
+   "result": "-",
+   "summary": "A parameter written by the unit; inside it is an edit of T N. OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1309-1310",
+     "quote": "ret 194"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:758",
+     "quote": "A parameter `NAME out T N`"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_out"
+  },
+  "export": {
+   "table": "kw2",
+   "id": 195,
+   "category": "OM-2",
+   "profile": "OM-2",
+   "form": "export fn NAME ...",
+   "arity": 0,
+   "types": [],
+   "result": "-",
+   "summary": "Mark a function-mode entry (no fn main). OM-2 units only (first line `om2`).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:1312-1313",
+     "quote": "ret 195"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:762",
+     "quote": "`export fn NAME ...` at top level"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:644-645",
+     "quote": "rotr rotl unroll inline fresh abstract seal open holds layout field at little big part out"
+    }
+   ],
+   "example": "om2_export"
+  }
+ },
+ "topics": {
+  "requires": {
+   "form": "requires BOOL",
+   "summary": "OM-2 precondition: part of a function's prefix, checked on entry; false traps 9.",
+   "details": "Clauses run in declaration order after parameter binding. Predicates are pure: integer/bool operations, conversions, len and array reads only.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:1128",
+     "quote": "`requires BOOL` and `ensures BOOL` form a function's prefix"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:1173",
+     "quote": "False `requires` uses existing trap **9**"
+    }
+   ],
+   "example": "contract_fail"
+  },
+  "ensures": {
+   "form": "ensures BOOL",
+   "summary": "OM-2 postcondition: checked on every normal return; `result` names the returned value; false traps 10.",
+   "details": "Not run on exit or a trap. A parameter means its current value at return.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:1133",
+     "quote": "Postconditions execute in declaration order on **every normal return**"
+    }
+   ],
+   "example": "contracts"
+  },
+  "invariant": {
+   "form": "invariant BOOL",
+   "summary": "OM-2 loop invariant: the prefix of a while or for body, checked at the loop head; false traps 10.",
+   "details": "Runs on entry, every backedge and before the final false condition.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:1146",
+     "quote": "`invariant BOOL` forms the prefix of a `while` or `for` body"
+    }
+   ],
+   "example": "contracts"
+  },
+  "result": {
+   "form": "result",
+   "summary": "OM-2: the returned value, available only inside ensures clauses (elsewhere error 30).",
+   "details": "It has the declared return type; the caller receives the same value after the checks.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:1137",
+     "quote": "The read-only name `result` is available only in value postconditions."
+    }
+   ],
+   "example": "contracts"
+  },
+  "om2": {
+   "form": "om2 | om2 diag | om2 fmt",
+   "summary": "First line that opts a unit into profile OM-2 (rotate, unroll, inline, layout, abstract types, contracts, unsized views).",
+   "details": "Leading blank and note lines are skipped; in an OM-1 unit the om2 line is error 16.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:642-643",
+     "quote": "when the next line is exactly `om2`"
+    }
+   ],
+   "example": "om2_rotate"
+  },
+  "exit_status": {
+   "summary": "Program exit status: main's value modulo 256; a trap N exits 100 + N; exit v exits v modulo 256.",
+   "details": "An explicit exit 101..114 cannot be told apart from a trap by status alone.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:404-405",
+     "quote": "main's value modulo 256"
+    },
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:406",
+     "quote": "exit status 100 + the trap code"
+    }
+   ],
+   "example": "exit"
+  },
+  "packed_list": {
+   "summary": "Host-word argument lists: little-endian u16 count, then per record a u16 length and the bytes.",
+   "details": "At most 4096 bytes, count 1..64; zero bytes, truncation or trailing bytes trap 3. Used by execprog, renames, link, symlnk.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:896",
+     "quote": "A packed list is a little-endian `u16` count followed by that many records"
+    }
+   ],
+   "example": "dirs"
+  },
+  "paths": {
+   "summary": "Host paths are length-delimited byte slices of at most 4095 bytes; embedded zero bytes trap 3.",
+   "details": "Relative paths resolve against the current directory (AT_FDCWD).",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:857",
+     "quote": "Paths are at most 4095 bytes."
+    }
+   ],
+   "example": "files"
+  },
+  "host_words": {
+   "summary": "Native host words: Linux system calls with checked slices; results are long, negative errno on failure.",
+   "details": "They do not form a sandbox: they run with the process's permissions. Program mode only.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:775-778",
+     "quote": "These operations do not form a sandbox"
+    }
+   ],
+   "example": "files"
+  },
+  "compile_errors": {
+   "summary": "omc writes `omc: line N: error K` to stderr and exits with K; use explain_error for any K.",
+   "details": "Codes 1..24 and 27..30 exist at the pin; 25 and 26 are unused.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 seed/omc/omc.om:292-293",
+     "quote": "fn fail code ulong to void"
+    }
+   ],
+   "example": "e03"
+  },
+  "traps": {
+   "summary": "Run-time traps 1..14 end a program with exit 100 + code.",
+   "details": "Codes are part of the observable semantics and are never renumbered.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 src/compiler/osc_ir.h:165-166",
+     "quote": "Trap codes are part of the observable semantics"
+    }
+   ],
+   "example": "t02"
+  },
+  "contracts": {
+   "summary": "OM-2 contracts: requires, ensures and invariant clauses checked at run time (traps 9 and 10).",
+   "details": "Compiler error 30 covers misplaced contracts, unavailable result and impure predicates.",
+   "citations": [
+    {
+     "ref": "omega-mv@e5b32567 docs/one_layer/OMEGESE.md:1177-1178",
+     "quote": "Compiler error **30** means misplaced"
+    }
+   ],
+   "example": "contracts"
+  }
+ },
+ "examples": {
+  "hello": {
+   "mode": "run",
+   "exit": 0,
+   "stdout": "hello\n"
+  },
+  "ints": {
+   "mode": "run",
+   "exit": 61
+  },
+  "arith": {
+   "mode": "run",
+   "exit": 91
+  },
+  "control": {
+   "mode": "run",
+   "exit": 131
+  },
+  "arrays": {
+   "mode": "run",
+   "exit": 10
+  },
+  "calls": {
+   "mode": "run",
+   "exit": 55
+  },
+  "exit": {
+   "mode": "run",
+   "exit": 44
+  },
+  "trapword": {
+   "mode": "trap",
+   "trap": 4
+  },
+  "free_refused": {
+   "mode": "error",
+   "code": 9,
+   "line": 3
+  },
+  "own_refused": {
+   "mode": "error",
+   "code": 9,
+   "line": 3
+  },
+  "structs": {
+   "mode": "run",
+   "exit": 41
+  },
+  "floats": {
+   "mode": "run",
+   "exit": 11
+  },
+  "consts": {
+   "mode": "run",
+   "exit": 35
+  },
+  "om2_rotate": {
+   "mode": "run",
+   "exit": 3
+  },
+  "om2_unroll": {
+   "mode": "run",
+   "exit": 14
+  },
+  "om2_abstract": {
+   "mode": "run",
+   "exit": 5
+  },
+  "om2_fresh": {
+   "mode": "run",
+   "exit": 5
+  },
+  "om2_layout": {
+   "mode": "run",
+   "exit": 81
+  },
+  "om2_part": {
+   "mode": "run",
+   "exit": 55
+  },
+  "om2_out": {
+   "mode": "run",
+   "exit": 12
+  },
+  "om2_export": {
+   "mode": "compile"
+  },
+  "contracts": {
+   "mode": "run",
+   "exit": 0
+  },
+  "contract_fail": {
+   "mode": "trap",
+   "trap": 9
+  },
+  "files": {
+   "mode": "run",
+   "exit": 0
+  },
+  "dirs": {
+   "mode": "run",
+   "exit": 0
+  },
+  "procs": {
+   "mode": "run",
+   "exit": 0
+  },
+  "argsenv": {
+   "mode": "run",
+   "exit": 1
+  },
+  "clock": {
+   "mode": "run",
+   "exit": 0
+  },
+  "sockets": {
+   "mode": "run",
+   "exit": 0
+  },
+  "mapping": {
+   "mode": "run",
+   "exit": 0
+  },
+  "e03": {
+   "mode": "error",
+   "code": 3,
+   "line": 2
+  },
+  "e04": {
+   "mode": "error",
+   "code": 4,
+   "line": 2
+  },
+  "e05": {
+   "mode": "error",
+   "code": 5,
+   "line": 2
+  },
+  "e06": {
+   "mode": "error",
+   "code": 6,
+   "line": 2
+  },
+  "e07": {
+   "mode": "error",
+   "code": 7,
+   "line": 2
+  },
+  "e08": {
+   "mode": "error",
+   "code": 8,
+   "line": 2
+  },
+  "e09": {
+   "mode": "error",
+   "code": 9,
+   "line": 2
+  },
+  "e10": {
+   "mode": "error",
+   "code": 10,
+   "line": 1
+  },
+  "e11": {
+   "mode": "error",
+   "code": 11,
+   "line": 2
+  },
+  "e12": {
+   "mode": "error",
+   "code": 12,
+   "line": 18
+  },
+  "e13": {
+   "mode": "error",
+   "code": 13,
+   "line": 2
+  },
+  "e14": {
+   "mode": "error",
+   "code": 14,
+   "line": 1
+  },
+  "e15": {
+   "mode": "error",
+   "code": 15,
+   "line": 3
+  },
+  "e16": {
+   "mode": "error",
+   "code": 16,
+   "line": 1
+  },
+  "e17": {
+   "mode": "error",
+   "code": 17,
+   "line": 3
+  },
+  "e18": {
+   "mode": "error",
+   "code": 18,
+   "line": 3
+  },
+  "e19": {
+   "mode": "error",
+   "code": 19,
+   "line": 5
+  },
+  "e20": {
+   "mode": "error",
+   "code": 20,
+   "line": 3
+  },
+  "e21": {
+   "mode": "error",
+   "code": 21,
+   "line": 3
+  },
+  "e22": {
+   "mode": "error",
+   "code": 22,
+   "line": 1
+  },
+  "e23": {
+   "mode": "error",
+   "code": 23,
+   "line": 2
+  },
+  "e27": {
+   "mode": "error",
+   "code": 27,
+   "line": 3
+  },
+  "e28": {
+   "mode": "error",
+   "code": 28,
+   "line": 4
+  },
+  "e29": {
+   "mode": "error",
+   "code": 29,
+   "line": 3
+  },
+  "e30": {
+   "mode": "error",
+   "code": 30,
+   "line": 3
+  },
+  "t01": {
+   "mode": "trap",
+   "trap": 1
+  },
+  "t02": {
+   "mode": "trap",
+   "trap": 2
+  },
+  "t03": {
+   "mode": "trap",
+   "trap": 3
+  },
+  "t04": {
+   "mode": "trap",
+   "trap": 4
+  },
+  "t05": {
+   "mode": "trap",
+   "trap": 5
+  },
+  "t06": {
+   "mode": "trap",
+   "trap": 6
+  },
+  "t07": {
+   "mode": "trap",
+   "trap": 7
+  },
+  "t08": {
+   "mode": "trap",
+   "trap": 8
+  },
+  "t11": {
+   "mode": "trap",
+   "trap": 11
+  },
+  "t12": {
+   "mode": "trap",
+   "trap": 12
+  },
+  "t13": {
+   "mode": "trap",
+   "trap": 13
+  },
+  "t14": {
+   "mode": "trap",
+   "trap": 14
+  },
+  "t10": {
+   "mode": "trap",
+   "trap": 10
+  }
+ }
+}

@@ -1,0 +1,17 @@
+note monotonic and realtime clocks, a short sleep and random bytes
+global buf uchar 16
+fn main to int
+a = monons
+r = sleepns 1000000
+b = monons
+if lt sub b a 1000000
+ret 1
+end
+if le realns 0
+ret 2
+end
+if ne random buf 0 16 0 16
+ret 3
+end
+ret 0
+end

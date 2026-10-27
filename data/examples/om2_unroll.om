@@ -1,0 +1,12 @@
+om2
+note unroll compiles the body K times with a constant counter; inline compiles each call in place
+fn sq x ulong to ulong inline
+ret mul x x
+end
+fn main to int
+s = ulong 0
+for i ulong 4 unroll
+s = add s sq i
+end
+ret int s
+end

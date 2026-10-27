@@ -1,0 +1,39 @@
+note open, write, sync, lock, seek, read, positioned read and write, truncate, stat, chmod, unlink, memfd
+text path "demo.txt"
+global data uchar 5
+global buf uchar 128
+fn ck yes bool to void
+if not yes
+exit 80
+end
+end
+fn main to int
+for i ulong 5
+put data i uchar add 97 i
+end
+old = umask 18
+fd = int fopen path 0 len path 578 420
+ck ge fd 0
+ck eq write fd data 0 len data 5
+ck eq fsync fd 0
+ck eq fdsync fd 0
+ck eq flock fd 2 0
+ck eq syncfs fd 0
+ck eq pwrite fd data 0 1 5 1
+ck eq fseek fd 0 0 0
+ck eq read fd buf 0 6 6
+ck eq pread fd buf 0 2 3 2
+ck eq ftrunc fd 3 0
+ck eq fstat fd buf 0 128 0
+ck eq fchmod fd 384 0
+ck eq fclose fd 0
+ck eq stat path 0 len path buf 0 128 0
+ck eq lstat path 0 len path buf 0 128 0
+ck eq chmod path 0 len path 420 0
+ck eq faccess path 0 len path 4 0
+ck eq truncate path 0 len path 1 0
+ck eq unlink path 0 len path 0
+m = memfd path 0 len path 0
+ck ge m 0
+ret 0
+end

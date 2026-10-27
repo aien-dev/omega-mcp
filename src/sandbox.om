@@ -183,7 +183,8 @@ pk_arg a_p
 end
 
 note pk_noiso: the isolation-off control (--test-only-no-isolation). The program runs directly on the
-note host through /usr/bin/env with every server environment entry, in the temp dir, with no limits.
+note host through /usr/bin/env with the server environment entries that fit the packed list (at most 62
+note entries and 4096 bytes; later entries are dropped), in the temp dir, with no limits.
 fn pk_noiso md ulong to void
 pk_reset
 pk_arg kenv
@@ -193,6 +194,9 @@ for i ulong nenv
 r = envread i b 0 1024
 if lt r 0
 continue
+end
+if ge get gv gpkn 63
+break
 end
 if gt add add get gv gpkl ulong r 600 4096
 continue

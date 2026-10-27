@@ -1,0 +1,6 @@
+fn deep n ulong to ulong
+ret add 1 deep add n 1
+end
+fn main to int
+ret int deep 0
+end

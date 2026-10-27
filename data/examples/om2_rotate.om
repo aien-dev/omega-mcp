@@ -1,0 +1,8 @@
+om2
+note rotr and rotl rotate an unsigned value; amounts outside 0..width-1 trap 7
+fn main to int
+x = uint 0x80000001
+y = rotr x 1
+z = rotl y 2
+ret int z
+end

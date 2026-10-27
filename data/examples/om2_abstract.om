@@ -1,0 +1,21 @@
+om2
+note abstract types: values made only by seal in NAMEmk, read by open, operations listed by ops;
+note holds dup32 checks every seal at run time (trap 10)
+abstract tag uint ops and or
+abstract dup32 ulong ops xor
+holds dup32 dup32
+fn tagmk x uint to tag
+ret seal tag x
+end
+fn dup32mk x uint to dup32
+ret seal dup32 or shl ulong x 32 ulong x
+end
+fn main to int
+t = or tagmk 12 tagmk 3
+u = and t tagmk 5
+d = xor dup32mk 7 dup32mk 4
+if ne open d 12884901891
+ret 1
+end
+ret int open u
+end

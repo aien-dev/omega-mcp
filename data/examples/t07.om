@@ -1,0 +1,5 @@
+fn main to int
+s = uint 40
+x = shl uint 1 s
+ret 0
+end

@@ -1,0 +1,8 @@
+om2
+fn one to uint
+ensures eq result 2
+ret 1
+end
+fn main to int
+ret int one
+end

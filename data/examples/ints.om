@@ -1,0 +1,20 @@
+note every integer width; each value converts to long and the sum modulo 256 is the exit status
+fn main to int
+s = long uchar 200
+s = add s long u8 1
+s = add s long ushort 300
+s = add s long u16 2
+s = add s long uint 3
+s = add s long u32 4
+s = add s long ulong 5
+s = add s long u64 6
+s = add s long byte -7
+s = add s long i8 8
+s = add s long short -9
+s = add s long i16 10
+s = add s long int 11
+s = add s long i32 12
+s = add s long 13
+s = add s i64 14
+ret int rem s 256
+end

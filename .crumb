@@ -1,0 +1,30 @@
+{
+  "extensions": {
+    "generated": {
+      "children": [],
+      "children_root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiled_at": "2026-10-27T16:36:01Z",
+      "compiler": "crumb-compile/1",
+      "digest": "sha256:29545422b7d222a7d70a2a30a08b34aa3dd4c504abbb30d3fa382057575beb6a",
+      "evidence_files": 3,
+      "evidence_root": "sha256:66b5f8dd905a61d5c92cdfcd3a82460ea637719b3b226c7c7158ec43cf3bf49c",
+      "files": 95,
+      "generated_at_commit": "685181929bfe210256bd241efd5d03ca124e77d6",
+      "source_tree": "sha256:f72b52be0ad3edfbd52e03a5436837fe320f81126225de3dc4998d8a29ff5274"
+    },
+    "pin": {
+      "omega_mv": "aien-dev/omega-mv@e5b32567a7aff3ce594e3254a622a846a6cd190b"
+    }
+  },
+  "invariants": [
+    "build.sh and the server refuse any compiler whose sha256 is not the pin.",
+    "Every compile and run stage runs inside bwrap with the limits in src/state.om; --test-only-no-isolation is for the trust gate's negative controls only.",
+    "The trust gate passes only when each attack is refused or killed with no process left and each negative control shows the attack succeeding.",
+    "data/ is written by tools/gen-reference.py and must pass tools/check-reference.py against the pinned source and omc.",
+    "evidence/ is additions only; never edit a recorded result."
+  ],
+  "layer": "tooling",
+  "name": "omega-mcp",
+  "purpose": "MCP stdio server written in Omega (src/*.om, built by build.sh with the seeded omc pinned at sha256 2c82480596bbdc50cda9626866209ef662d5834f278f839ff4ce0250c495029f): tools compile and run .om in a per-call bwrap+prlimit sandbox, explain_error and lookup answer from data/ checked against omega-mv@e5b32567; gates/ holds the smoke session and the trust-boundary gate, evidence/ their recorded results.",
+  "schema_version": "1.0.0"
+}

@@ -1,0 +1,6 @@
+om2
+abstract tag uint
+fn main to int
+t = seal tag 1
+ret 0
+end

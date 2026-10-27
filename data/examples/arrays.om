@@ -1,0 +1,20 @@
+note a local array (new), a global pool, view and edit parameters, get, put and len
+global tot ulong 1
+fn sum a view uint 4 to uint
+s = uint 0
+for i ulong len a
+s = add s get a i
+end
+ret s
+end
+fn fill a edit uint 4 to void
+for i ulong 4
+put a i uint add i 1
+end
+end
+fn main to int
+a = new uint 4 0
+fill a
+put tot 0 ulong sum a
+ret int get tot 0
+end

@@ -1,0 +1,37 @@
+note a Unix socket pair in the working directory: socket, option, bind, listen, connect, accept,
+note send, wait, receive, peer identity, sendmsg, poll and shutdown
+global buf uchar 64
+global four uchar 4
+global pfd uchar 8
+text msg "ping"
+fn ck yes bool to void
+if not yes
+exit 80
+end
+end
+fn main to int
+na = new uchar 3 0
+put na 0 1
+put na 2 115
+s = int socknew 1 1 0
+ck ge s 0
+put four 0 1
+ck eq sockopt s 1 2 four 0 4 0
+ck eq bind s na 0 3 0
+ck eq listen s 4 0
+ck gt sockname s buf 0 64 0
+c = int socknew 1 1 0
+ck eq connect c na 0 3 0
+a = int accept s 0
+ck ge a 0
+ck eq send c msg 0 4 0 4
+ck gt waitio a 1 1000000000 0
+ck eq recv a buf 0 4 0 4
+ck eq peercred a buf 0 12 0
+ck eq sendmsg a msg 0 4 0 4
+put pfd 0 uchar c
+put pfd 4 1
+ck eq pollfds pfd 0 8 1000000000 1
+ck eq shutdown c 2 0
+ret 0
+end

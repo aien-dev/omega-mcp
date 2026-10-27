@@ -1,0 +1,11 @@
+note named typed constants, used as an array length, a for count and a value
+const lim uint 5
+const seven uint 7
+fn main to int
+a = new uint lim seven
+s = uint 0
+for i uint lim
+s = add s get a i
+end
+ret int s
+end

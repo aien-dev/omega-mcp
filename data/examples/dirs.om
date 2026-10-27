@@ -1,0 +1,42 @@
+note directories, links and renames; paths pairs are packed lists (u16 count, then u16 length + bytes)
+text dir "sub"
+text gone "tmp"
+text fa "a"
+text dot "."
+global buf uchar 512
+fn ck yes bool to void
+if not yes
+exit 80
+end
+end
+fn main to int
+ck eq makedir dir 0 len dir 448 0
+ck eq makedir gone 0 len gone 448 0
+ck eq rmdir gone 0 len gone 0
+ck eq chdir dir 0 len dir 0
+ck gt cwd buf 0 512 0
+fd = int fopen fa 0 len fa 577 384
+ck ge fd 0
+ck eq fclose fd 0
+p = new uchar 8 0
+put p 0 2
+put p 2 1
+put p 4 97
+put p 5 1
+put p 7 98
+ck eq link p 0 8 0
+put p 7 99
+ck eq symlnk p 0 8 0
+c = new uchar 1 99
+ck eq readlnk c 0 1 buf 0 64 1
+put p 4 98
+put p 7 100
+ck eq renames p 0 8 1 0
+ck eq chown fa 0 len fa int getuid int getgid 0
+ck ge add geteuid getegid 0
+d = int fopen dot 0 len dot 0 0
+ck ge d 0
+ck gt getdnts d buf 0 512 0
+ck eq fchdir d 0
+ret 0
+end

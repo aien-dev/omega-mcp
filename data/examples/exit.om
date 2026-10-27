@@ -1,0 +1,4 @@
+note exit ends the program at once; the status is the value modulo 256
+fn main to int
+exit 300
+end

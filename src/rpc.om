@@ -182,7 +182,9 @@ js_wlong ob code
 wkt ob k_msg msg
 js_wobje ob
 rsend ob
+lg_t l_out
 lg_t o_err
+lg_b 45
 lg_n ulong neg code
 end
 

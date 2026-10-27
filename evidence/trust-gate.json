@@ -1,0 +1,241 @@
+{
+ "server": "/home/drakestapleton/workspace/omega-mcp/build/omega-mcp",
+ "rows": [
+  {
+   "gate": "read",
+   "case": "canary + state dir",
+   "server": "sandbox",
+   "seconds": 0.01,
+   "want": "exit 0: canary and ~/.local/state both invisible, secret absent from stdout",
+   "observed": {
+    "compile_ok": true,
+    "exit": {
+     "kind": "normal",
+     "code": 0
+    },
+    "stdout": "",
+    "stdout_bytes": 0,
+    "isolation": "bwrap+prlimit: no network, no host files, cleared environment, cpu/as/fsize/nproc limits, server wall clock"
+   },
+   "leftover_processes": [],
+   "pass": true
+  },
+  {
+   "gate": "read",
+   "case": "canary + state dir (control)",
+   "server": "noiso",
+   "seconds": 0.0,
+   "want": "exit 10 and the secret on stdout (the gate sees a leak)",
+   "observed": {
+    "compile_ok": true,
+    "exit": {
+     "kind": "normal",
+     "code": 10
+    },
+    "stdout": "omega-mcp-canary-89e5ea4a60ef723e\n",
+    "stdout_bytes": 34,
+    "isolation": "OFF (--test-only-no-isolation): ran on the host with the server environment and no limits except the wall clock"
+   },
+   "leftover_processes": [],
+   "pass": true
+  },
+  {
+   "gate": "forkbomb",
+   "case": "unbounded bomb",
+   "server": "sandbox",
+   "seconds": 3.02,
+   "want": "stopped by a limit or the wall clock within 15 s; mid-run 1..5 bomb processes seen; none left",
+   "observed": {
+    "compile_ok": true,
+    "exit": {
+     "kind": "limit",
+     "limit": "wall_clock",
+     "timeout_ms": 3000
+    },
+    "stdout": "",
+    "stdout_bytes": 0,
+    "isolation": "bwrap+prlimit: no network, no host files, cleared environment, cpu/as/fsize/nproc limits, server wall clock"
+   },
+   "leftover_processes": [],
+   "pass": true,
+   "mid_run_processes": [
+    "1266658 /usr/bin/bwrap --unshare-all --unshare-user --disable-userns --die-with-parent --new-session --clearenv --block-fd 4 --info-fd 5 --ro-bind /home/drakestapleton/workspace/omega-mcp/build/omega-mcp /r --ro-bind /tmp/omega-mcp-1f0e55ad63f0b742/bin /p --size 16777216 --tmpfs /w --chdir /w --remount-ro / /r reap /p",
+    "1266660 /usr/bin/bwrap --unshare-all --unshare-user --disable-userns --die-with-parent --new-session --clearenv --block-fd 4 --info-fd 5 --ro-bind /home/drakestapleton/workspace/omega-mcp/build/omega-mcp /r --ro-bind /tmp/omega-mcp-1f0e55ad63f0b742/bin /p --size 16777216 --tmpfs /w --chdir /w --remount-ro / /r reap /p",
+    "1266662 /r reap /p",
+    "1266664 /p",
+    "1266665 /p",
+    "1266666 /p"
+   ]
+  },
+  {
+   "gate": "forkbomb",
+   "case": "count 20 forks",
+   "server": "sandbox",
+   "seconds": 0.01,
+   "want": "at most 5 forks succeed (nproc 5)",
+   "observed": {
+    "compile_ok": true,
+    "exit": {
+     "kind": "normal",
+     "code": 2
+    },
+    "stdout": "",
+    "stdout_bytes": 0,
+    "isolation": "bwrap+prlimit: no network, no host files, cleared environment, cpu/as/fsize/nproc limits, server wall clock"
+   },
+   "leftover_processes": [],
+   "pass": true
+  },
+  {
+   "gate": "forkbomb",
+   "case": "count 20 forks (control)",
+   "server": "noiso",
+   "seconds": 0.0,
+   "want": "all 20 forks succeed without the limit",
+   "observed": {
+    "compile_ok": true,
+    "exit": {
+     "kind": "normal",
+     "code": 20
+    },
+    "stdout": "",
+    "stdout_bytes": 0,
+    "isolation": "OFF (--test-only-no-isolation): ran on the host with the server environment and no limits except the wall clock"
+   },
+   "leftover_processes": [],
+   "pass": true
+  },
+  {
+   "gate": "loop",
+   "case": "wall clock 2 s",
+   "server": "sandbox",
+   "seconds": 2.02,
+   "want": "killed at the 2 s wall clock",
+   "observed": {
+    "compile_ok": true,
+    "exit": {
+     "kind": "limit",
+     "limit": "wall_clock",
+     "timeout_ms": 2000
+    },
+    "stdout": "",
+    "stdout_bytes": 0,
+    "isolation": "bwrap+prlimit: no network, no host files, cleared environment, cpu/as/fsize/nproc limits, server wall clock"
+   },
+   "leftover_processes": [],
+   "pass": true
+  },
+  {
+   "gate": "loop",
+   "case": "cpu limit (wall 30 s)",
+   "server": "sandbox",
+   "seconds": 10.12,
+   "want": "killed by RLIMIT_CPU (10 s) before the 30 s wall clock",
+   "observed": {
+    "compile_ok": true,
+    "exit": {
+     "kind": "limit",
+     "limit": "cpu_time",
+     "signal": 24,
+     "cpu_seconds": 10
+    },
+    "stdout": "",
+    "stdout_bytes": 0,
+    "isolation": "bwrap+prlimit: no network, no host files, cleared environment, cpu/as/fsize/nproc limits, server wall clock"
+   },
+   "leftover_processes": [],
+   "pass": true
+  },
+  {
+   "gate": "loop",
+   "case": "cpu limit (control)",
+   "server": "noiso",
+   "seconds": 30.31,
+   "want": "without prlimit only the 30 s wall clock stops it",
+   "observed": {
+    "compile_ok": true,
+    "exit": {
+     "kind": "limit",
+     "limit": "wall_clock",
+     "timeout_ms": 30000
+    },
+    "stdout": "",
+    "stdout_bytes": 0,
+    "isolation": "OFF (--test-only-no-isolation): ran on the host with the server environment and no limits except the wall clock"
+   },
+   "leftover_processes": [],
+   "pass": true
+  },
+  {
+   "gate": "write",
+   "case": "10 GiB to a file",
+   "server": "sandbox",
+   "seconds": 0.57,
+   "want": "SIGXFSZ at the 1 MiB file-size limit",
+   "observed": {
+    "compile_ok": true,
+    "exit": {
+     "kind": "limit",
+     "limit": "file_size",
+     "signal": 25,
+     "file_size_bytes": 1048576
+    },
+    "stdout": "",
+    "stdout_bytes": 0,
+    "isolation": "bwrap+prlimit: no network, no host files, cleared environment, cpu/as/fsize/nproc limits, server wall clock"
+   },
+   "leftover_processes": [],
+   "pass": true
+  },
+  {
+   "gate": "write",
+   "case": "10 GiB to stdout",
+   "server": "sandbox",
+   "seconds": 0.11,
+   "want": "SIGXFSZ; at most 1 MiB reached the host capture file",
+   "observed": {
+    "compile_ok": true,
+    "exit": {
+     "kind": "limit",
+     "limit": "file_size",
+     "signal": 25,
+     "file_size_bytes": 1048576
+    },
+    "stdout": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "stdout_bytes": 1048576,
+    "isolation": "bwrap+prlimit: no network, no host files, cleared environment, cpu/as/fsize/nproc limits, server wall clock"
+   },
+   "leftover_processes": [],
+   "pass": true
+  },
+  {
+   "gate": "write",
+   "case": "8 MiB to stdout (control)",
+   "server": "noiso",
+   "seconds": 0.01,
+   "want": "without the limit all 8 MiB are written",
+   "observed": {
+    "compile_ok": true,
+    "exit": {
+     "kind": "normal",
+     "code": 0
+    },
+    "stdout": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "stdout_bytes": 8388608,
+    "isolation": "OFF (--test-only-no-isolation): ran on the host with the server environment and no limits except the wall clock"
+   },
+   "leftover_processes": [],
+   "pass": true
+  }
+ ],
+ "fails": [],
+ "server_exit": [
+  0,
+  0
+ ],
+ "server_stderr": {
+  "sandbox": "omega-mcp: ready; isolation bwrap+prlimit; compiler 2c82480596bbdc50cda9626866209ef662d5834f278f839ff4ce0250c495029f\nreq initialize id=1 -> ok\nreq notifications/initialized no reply\nreq tools/call id=2 tool=run compile=0 ms=4 run=1/0 ms=4 -> ok\nreq tools/call id=3 tool=run compile=0 ms=4 run=6/0 ms=3006 -> ok\nreq tools/call id=4 tool=run compile=0 ms=4 run=1/2 ms=4 -> ok\nreq tools/call id=5 tool=run compile=0 ms=4 run=6/0 ms=2008 -> ok\nreq tools/call id=6 tool=run compile=0 ms=4 run=3/24 ms=10110 -> ok\nreq tools/call id=7 tool=run compile=0 ms=160 run=5/25 ms=207 -> ok\nreq tools/call id=8 tool=run compile=0 ms=4 run=5/25 ms=97 -> ok\nomega-mcp: end of input; exiting\n",
+  "noiso": "omega-mcp: WARNING: --test-only-no-isolation is set; programs run on the host without sandbox, limits or environment clearing. Test use only; never use this flag with an agent.\nreq initialize id=1 -> ok\nreq notifications/initialized no reply\nreq tools/call id=2 tool=run compile=0 ms=2 run=1/10 ms=2 -> ok\nreq tools/call id=3 tool=run compile=0 ms=2 run=1/20 ms=2 -> ok\nreq tools/call id=4 tool=run compile=0 ms=2 run=6/0 ms=30273 -> ok\nreq tools/call id=5 tool=run compile=0 ms=2 run=1/0 ms=2 -> ok\nomega-mcp: end of input; exiting\n"
+ },
+ "verdict": "PASS"
+}

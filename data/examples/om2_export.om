@@ -1,0 +1,5 @@
+om2
+note function mode: export marks an entry; word 0 branches to it. Compile only (no fn main).
+export fn twice a ulong to ulong
+ret add a a
+end

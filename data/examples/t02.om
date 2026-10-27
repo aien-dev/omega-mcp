@@ -1,0 +1,4 @@
+fn main to int
+z = int 0
+ret div 7 z
+end

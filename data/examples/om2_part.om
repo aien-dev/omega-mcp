@@ -1,0 +1,9 @@
+om2
+note part A o k passes elements o..o+k-1 to an unsized view or edit parameter (T *)
+text msg "0123456789"
+fn first v view uchar * to ulong
+ret ulong get v 0
+end
+fn main to int
+ret int first part msg 7 3
+end

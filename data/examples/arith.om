@@ -1,0 +1,39 @@
+note signed and unsigned arithmetic, bit operations, comparisons and not
+fn main to int
+a = int 17
+b = int 5
+s = add a b
+s = sub s mul a b
+s = add s div a b
+s = add s rem a b
+x = uint 12
+x = and x 10
+x = or x 3
+x = xor x 6
+x = shl x 2
+x = shr x 1
+n = neg s
+k = int 0
+if eq n 58
+k = add k 1
+end
+if ne a b
+k = add k 1
+end
+if lt b a
+k = add k 1
+end
+if le a 17
+k = add k 1
+end
+if gt a b
+k = add k 1
+end
+if ge b 5
+k = add k 1
+end
+if not lt a b
+k = add k 1
+end
+ret add add n int x k
+end

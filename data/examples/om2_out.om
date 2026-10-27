@@ -1,0 +1,12 @@
+om2
+note an out parameter is written by the unit; inside the unit it is an edit of T N
+fn fill r out ulong 3 v ulong to ulong
+for i ulong 3
+put r i add v i
+end
+ret get r 2
+end
+fn main to int
+a = new ulong 3 0
+ret int fill a 10
+end

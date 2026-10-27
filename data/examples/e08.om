@@ -1,0 +1,4 @@
+fn main to int
+x = int 2147483648
+ret 0
+end

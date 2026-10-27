@@ -1,0 +1,15 @@
+om2
+note an external byte layout: fields at fixed offsets with a byte order, over a uchar array of SIZE bytes
+layout hdr 6
+field magic ushort at 0 big
+field size uint at 2 little
+end
+fn setc c edit hdr to void
+put c magic 0x4f4d
+put c size 258
+end
+fn main to int
+c = new uchar 6 0
+setc c
+ret int add get c 0 get c 2
+end

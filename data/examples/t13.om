@@ -1,0 +1,4 @@
+note native program mode raises trap 13 only through the trap word
+fn main to int
+trap 13
+end

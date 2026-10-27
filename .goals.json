@@ -1,0 +1,30 @@
+{
+  "project_name": "omega-mcp",
+  "goals": [
+    {
+      "id": "goal-mcp-server",
+      "title": "Omega MCP server (OmegaReach milestone 1)",
+      "description": "An MCP stdio server written in Omega that compiles and runs .om with the pinned seeded omc in a bwrap+prlimit sandbox and answers error and keyword lookups from data checked against the pinned source.",
+      "status": "Active",
+      "milestones": [
+        {
+          "id": 1,
+          "description": "initialize, tools/list and tools/call compile/run/explain_error/lookup over stdio; smoke session, reference oracle and 4 trust gates (state read, fork bomb, infinite loop, 10 GiB write) pass on the host with negative controls",
+          "completed": true
+        },
+        {
+          "id": 2,
+          "description": "CI on ubuntu-24.04-arm runs the smoke, reference and trust gates",
+          "completed": false
+        },
+        {
+          "id": 3,
+          "description": "Replace bwrap and prlimit with Omega host words for namespaces, mounts and rlimits",
+          "completed": false
+        }
+      ],
+      "created_at": "2026-10-27T16:34:36Z",
+      "updated_at": "2026-10-27T16:34:36Z"
+    }
+  ]
+}
