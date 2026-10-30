@@ -1,4 +1,6 @@
-# omega-mcp
+# omega-mcp   
+
+[![Omega MCP on mcprush](https://mcprush.com/badge/omega-mcp/score.svg)](https://mcprush.com/to/omega-mcp?ref=badge)
 
 An MCP server, written in Omega, that lets an agent compile and run Omega (`.om`) programs with the
 pinned seeded compiler and look up the language. It speaks MCP (protocol version `2025-06-18`) as
